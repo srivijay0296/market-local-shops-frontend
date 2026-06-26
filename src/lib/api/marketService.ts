@@ -32,7 +32,7 @@ export interface MarketPayload {
  * ─────────────────────────────────────────────────────────────────────────────
  */
 async function getVerifiedSession(operation: string) {
-  const { data: { session }, error } = await Promise.resolve({ data: { session: null } });
+  const { data: { session }, error } = await Promise.resolve({ data: { session: null }, error: null as any });
 
   if (error) {
     LOG.error(`[${operation}] Auth.getSession() error`, error);
@@ -71,7 +71,8 @@ export async function insertMarket(payload: MarketPayload) {
 
   LOG.info('insertMarket() — payload', { user_id: session.user.id, ...insertData });
 
-  const { data, error } = await backendApi.post('/markets', insertData);
+  let data: any, error: any;
+  try { data = (await backendApi.post('/markets', insertData)).data; } catch(err) { error = err; }
 
   if (error) {
     LOG.error('insertMarket() failed', error);
@@ -112,7 +113,8 @@ export async function updateMarket(id: string, payload: Partial<MarketPayload>) 
 
   LOG.info(`updateMarket("${id}")`, { user_id: session.user.id, update: updateData });
 
-  const { data, error } = await backendApi.put(`/markets/${id}`, updateData);
+  let data: any, error: any;
+  try { data = (await backendApi.put(`/markets/${id}`, updateData)).data; } catch(err) { error = err; }
 
   if (error) {
     LOG.error(`updateMarket("${id}") failed`, error);
@@ -132,7 +134,8 @@ export async function deleteMarket(id: string) {
 
   LOG.info(`deleteMarket("${id}") — user: ${session.user.id}`);
 
-  const { data, error } = await backendApi.delete(`/markets/${id}`);
+  let data: any, error: any;
+  try { data = (await backendApi.delete(`/markets/${id}`)).data; } catch(err) { error = err; }
 
   if (error) {
     LOG.error(`deleteMarket("${id}") failed`, error);
@@ -164,9 +167,10 @@ export async function uploadMarketImage(file: File, folder: string = 'markets') 
   formData.append('folder', folder);
   formData.append('filePath', filePath);
 
-  const { data, error } = await backendApi.post('/markets/upload', formData, {
+  let data: any, error: any;
+  try { data = (await backendApi.post('/markets/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
-  });
+  })).data; } catch(err) { error = err; }
 
   if (error) {
     LOG.error(`uploadMarketImage("${filePath}") failed`, error);
@@ -191,7 +195,8 @@ export async function listMarkets(
   const params = new URLSearchParams({ sort: 'created_at_desc', limit: String(limit), offset: String(offset) });
   if (search) params.append('search', `%${search}%`);
 
-  const { data, error } = await backendApi.get(`/markets?${params.toString()}`);
+  let data: any, error: any;
+  try { data = (await backendApi.get(`/markets?${params.toString()}`)).data; } catch(err) { error = err; }
 
   if (error) {
     LOG.error('listMarkets() failed', error);
@@ -205,10 +210,12 @@ export async function listMarkets(
 /**
  * Count markets with optional search.
  */
+export async function countMarkets(search?: string) {
   const params = new URLSearchParams();
   if (search) params.append('search', `%${search}%`);
   
-  const { data, error } = await backendApi.get(`/markets/count?${params.toString()}`);
+  let data: any, error: any;
+  try { data = (await backendApi.get(`/markets/count?${params.toString()}`)).data; } catch(err) { error = err; }
   const count = data?.count || 0;
   if (error) {
     LOG.error('countMarkets() failed', error);
@@ -223,7 +230,8 @@ export async function listMarkets(
 export async function getMarketById(id: string) {
   LOG.info(`getMarketById("${id}")`);
 
-  const { data, error } = await backendApi.get(`/markets/${id}`);
+  let data: any, error: any;
+  try { data = (await backendApi.get(`/markets/${id}`)).data; } catch(err) { error = err; }
 
   if (error) {
     LOG.error(`getMarketById("${id}") failed`, error);
@@ -242,7 +250,8 @@ export async function getMarketsByIds(ids: string[]) {
   const params = new URLSearchParams();
   ids.forEach(id => params.append('id', id));
   
-  const { data, error } = await backendApi.get(`/markets/bulk?${params.toString()}`);
+  let data: any, error: any;
+  try { data = (await backendApi.get(`/markets/bulk?${params.toString()}`)).data; } catch(err) { error = err; }
 
   if (error) {
     LOG.error('getMarketsByIds() failed', error);

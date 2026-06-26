@@ -35,9 +35,7 @@ export const usersApi = {
     if (updates.phone !== undefined) payload.phone = updates.phone;
     if (updates.address !== undefined) payload.address = updates.address;
 
-    const { data, error } = await backendApi.put(`/profiles/${id}`, payload);
-
-    if (error) throw error;
+    const { data } = await backendApi.put(`/profiles/${id}`, payload);
     return data;
   }
 };

@@ -40,8 +40,7 @@ export default function MarketDashboard() {
     setLoading(true);
     try {
       // Markets
-      const { data: marketsData, error: marketsErr } = await backendApi.get('/fallback_markets');
-      if (marketsErr) throw marketsErr;
+      const { data: marketsData } = await backendApi.get('/fallback_markets');
       setMarkets(marketsData as Market[]);
 
       // Shop Requests with market name (join manually)

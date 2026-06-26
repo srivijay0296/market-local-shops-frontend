@@ -38,7 +38,7 @@ export interface MarketPayload {
 
 // ── Session guard ─────────────────────────────────────────────────────────────
 async function requireSession(operation: string) {
-  const { data: { session }, error: sessionError } = await Promise.resolve({ data: { session: null } });
+  const { data: { session }, error: sessionError } = await Promise.resolve({ data: { session: null }, error: null as any });
 
   if (sessionError) {
     LOG.error(`[${operation}] Session fetch error`, sessionError);

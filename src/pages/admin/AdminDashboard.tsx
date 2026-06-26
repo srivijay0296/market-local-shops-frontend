@@ -391,7 +391,7 @@ export default function AdminDashboard() {
           {activeTab === 'security' && (
             <div className="col-span-12">
               <div className="bg-slate-900 rounded-[5rem] p-24 shadow-2xl relative overflow-hidden group">
-                <Target className="absolute -top-20 -right-20 w-80 h-80 text-white/5 group-hover:scale-125 transition-transform duration-[3000ms]" />
+                <Target className="absolute -top-20 -right-20 w-80 h-80 text-white/5 group-hover:scale-125 transition-transform duration-1000" />
                 <div className="relative z-10 max-w-4xl space-y-8">
                   <div className="w-20 h-20 bg-indigo-600/30 rounded-3xl border border-white/20 flex items-center justify-center">
                     <Activity className="w-10 h-10 text-indigo-400" />

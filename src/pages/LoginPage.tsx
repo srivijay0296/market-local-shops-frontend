@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Store, Users, Package, Zap, ChevronRight, Sparkles, Mail, Phone } from "lucide-react";
+import { toast } from "sonner";
 
 import EmailLogin from "@/components/EmailLogin";
 import PhoneLogin from "@/components/PhoneLogin";
@@ -190,7 +191,7 @@ export default function LoginPage() {
               {/* SOCIAL AUTH GOOGLE */}
               <button
                 onClick={async () => {
-                   toast({ title: "Google login not yet configured", description: "Please use Email or Phone login." } as any);
+                   toast.error("Google login not yet configured. Please use Email or Phone login.");
                 }}
                 className="
                   w-full py-4 rounded-2xl border border-white/10 bg-[#ea4335]/10 

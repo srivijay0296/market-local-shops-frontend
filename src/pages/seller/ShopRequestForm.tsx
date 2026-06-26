@@ -43,8 +43,7 @@ export default function ShopRequestForm() {
     const fetchMarketsFromAPI = async () => {
       try {
         setLoading(true);
-        const { data, error } = await backendApi.get('/markets');
-        if (error) throw error;
+        const { data } = await backendApi.get('/markets');
         setMarkets(data || []);
       } catch (err: any) {
         console.error("Database fetch failed:", err.message);

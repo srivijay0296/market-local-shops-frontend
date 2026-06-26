@@ -39,7 +39,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     role: isSeller ? 'seller' : 'buyer',
     plan: user.subscription_plan || 'FREE',
     status: isActive ? 'active' : 'expired',
-    start_date: user.trial_start_date || user.created_at || new Date().toISOString(),
+    start_date: user.trial_start_date || (user as any).created_at || new Date().toISOString(),
     end_date: user.subscription_expires_at || user.trial_end_date || new Date().toISOString(),
   } : null;
 
