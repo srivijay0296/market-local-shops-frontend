@@ -15,7 +15,7 @@ const getApiServer = () => {
   }
 
   const isProd = !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1');
-  return isProd ? 'https://market-local-shops-143.vercel.app' : 'http://localhost:5000';
+  return isProd ? 'https://market-local-shops-143.vercel.app' : 'http://localhost:8080';
 };
 
 export const API_SERVER = getApiServer();

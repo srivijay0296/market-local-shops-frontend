@@ -7,25 +7,13 @@ import { readFileSync } from "fs";
 export default defineConfig({
   server: {
     host: true,
-    port: 8080,
+    port: 5173, // Changed from 8080 to prevent conflict with Spring Boot
     strictPort: false,
     historyApiFallback: true,
-    // 🔌 Proxy all /api/* calls to Express backend — eliminates CORS in dev
+    // 🔌 Proxy all /api/* calls to Spring Boot backend — eliminates CORS in dev
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
-        router: () => {
-          try {
-            const portPath = path.resolve(__dirname, '../.backend-port');
-            const portStr = readFileSync(portPath, 'utf8').trim();
-            if (portStr && !isNaN(Number(portStr))) {
-              return `http://localhost:${portStr}`;
-            }
-          } catch (e) {
-            // ignore and fallback
-          }
-          return 'http://localhost:5000';
-        },
+        target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
       },
