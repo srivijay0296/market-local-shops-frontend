@@ -5,8 +5,22 @@ import api from '@/lib/api/client';
  * Mapped to the new Java 21 / Spring Boot 3.5 backend
  */
 
-export const API_SERVER = 'http://localhost:8080';
-export const BACKEND_API_URL = 'http://localhost:8080/api';
+const normalizeApiUrl = (url: string) => url.trim().replace(/\/+$|\s+$/g, '');
+
+const getApiServer = () => {
+  const rawUrl = import.meta.env.VITE_API_URL?.trim();
+  if (rawUrl) {
+    return normalizeApiUrl(rawUrl).replace(/\/api\/?$/, '');
+  }
+
+  const isProd = !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1');
+  return isProd ? 'https://market-local-shops-143.vercel.app' : 'http://localhost:8080';
+};
+
+export const API_SERVER = getApiServer();
+export const BACKEND_API_URL = import.meta.env.VITE_API_URL
+  ? normalizeApiUrl(import.meta.env.VITE_API_URL)
+  : (import.meta.env.DEV ? '/api' : 'https://market-local-shops-143.vercel.app/api');
 
 // =============================
 // ✅ AUTHENTICATION

@@ -7,8 +7,17 @@ import { readFileSync } from "fs";
 export default defineConfig({
   server: {
     host: true,
-    port: 8080,
+    port: 5173, // Changed from 8080 to prevent conflict with Spring Boot
     strictPort: false,
+    historyApiFallback: true,
+    // 🔌 Proxy all /api/* calls to Spring Boot backend — eliminates CORS in dev
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   cacheDir: './.vite-fresh',
   envPrefix: "VITE_",
