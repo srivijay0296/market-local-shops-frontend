@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { backendApi } from '@/lib/api/client';
 import { formatPrice } from '@/lib/constants';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -17,18 +17,15 @@ export default function OrderConfirmation() {
   useEffect(() => {
     const fetchOrder = async () => {
       if (!orderId) return;
-      const { data: orderData } = await supabase
-        .from('ecom_orders')
-        .select('*')
-        .eq('id', orderId)
-        .single();
-      if (orderData) setOrder(orderData);
+      try {
+        const { data: orderData } = await backendApi.get(`/orders/${orderId}`);
+        if (orderData) setOrder(orderData);
 
-      const { data: itemsData } = await supabase
-        .from('ecom_order_items')
-        .select('*')
-        .eq('order_id', orderId);
-      if (itemsData) setItems(itemsData);
+        const { data: itemsData } = await backendApi.get(`/orders/${orderId}/items`);
+        if (itemsData) setItems(itemsData);
+      } catch (err) {
+        console.error('Failed to fetch order details:', err);
+      }
     };
     fetchOrder();
   }, [orderId]);

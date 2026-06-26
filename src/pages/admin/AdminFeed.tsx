@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { ShieldAlert, Trash2, CheckCircle2, AlertTriangle, EyeOff, LayoutGrid, Image as ImageIcon } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 import { toast } from "sonner";
 import { SellerPost } from "@/lib/api/sellerPosts";
 
@@ -16,15 +16,7 @@ export default function AdminFeed() {
   const loadContent = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('seller_posts')
-        .select(`
-           *,
-           sellers!seller_id (shop_name)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const { data } = await backendApi.get('/seller_posts', { params: { sort: 'created_at_desc' } });
       setPosts(data || []);
 
       // Calculate simple analytics
@@ -41,8 +33,7 @@ export default function AdminFeed() {
 
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
-      const { error } = await supabase.from('seller_posts').update({ status }).eq('id', id);
-      if (error) throw error;
+      await backendApi.patch(`/seller_posts/${id}`, { status });
       toast.success(`Post marked as ${status}`);
       setPosts(posts.map(p => p.id === id ? { ...p, status } : p));
       
@@ -60,8 +51,7 @@ export default function AdminFeed() {
   const handleDelete = async (id: string) => {
     if (!confirm("Permanently delete this post?")) return;
     try {
-      const { error } = await supabase.from('seller_posts').delete().eq('id', id);
-      if (error) throw error;
+      await backendApi.delete(`/seller_posts/${id}`);
       toast.success("Spam post removed completely");
       setPosts(posts.filter(p => p.id !== id));
       setAnalytics(prev => ({ ...prev, total: prev.total - 1 }));

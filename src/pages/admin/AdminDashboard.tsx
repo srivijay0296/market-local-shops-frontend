@@ -15,7 +15,7 @@ import {
 import { adminApi } from "@/lib/api/admin";
 import { shopsApi } from "@/lib/api/shops";
 import { productsApi } from "@/lib/api/products";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 import { usersApi } from "@/lib/api/users";
 
 type TabType = "analytics" | "sellers" | "products" | "security";
@@ -80,17 +80,11 @@ export default function AdminDashboard() {
           activeUsers: backendStats.activeUsers || 0,
         });
       } else if (activeTab === 'sellers') {
-        const { data, error } = await supabase
-          .from('shops')
-          .select('*, owner:profiles!owner_id(name, email)')
-          .order('created_at', { ascending: false });
-        if (!error) setSellers(data || []);
+        const { data } = await backendApi.get('/shops', { params: { sort: 'created_at_desc' } });
+        setSellers(data || []);
       } else if (activeTab === 'products') {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*, shop:shops(id, name)')
-          .order('created_at', { ascending: false });
-        if (!error) setProducts(data || []);
+        const { data } = await backendApi.get('/products', { params: { sort: 'created_at_desc' } });
+        setProducts(data || []);
       }
     } catch (error: any) {
       console.error("Dashboard Fetch Error:", error);
@@ -102,9 +96,9 @@ export default function AdminDashboard() {
     try {
       const newStatus = !currentStatus;
       if (type === 'shops') {
-        await supabase.from('shops').update({ is_approved: newStatus }).eq('id', id);
+        await backendApi.put(`/shops/${id}`, { is_approved: newStatus });
       } else {
-        await supabase.from('products').update({ is_approved: newStatus }).eq('id', id);
+        await backendApi.put(`/products/${id}`, { is_approved: newStatus });
       }
       toast.success(`Node ${newStatus ? 'Authorized' : 'Deauthorized'} Successfully`);
       fetchData();
@@ -120,7 +114,11 @@ export default function AdminDashboard() {
   const deleteNode = async (id: string, type: 'shops' | 'products') => {
     if (!confirm("Execute Node Deletion Request? This action is irreversible.")) return;
     try {
-      await supabase.from(type).delete().eq('id', id);
+      if (type === 'shops') {
+        await backendApi.delete(`/shops/${id}`);
+      } else {
+        await backendApi.delete(`/products/${id}`);
+      }
       toast.success("Node Purged from Nexus Record");
       fetchData();
     } catch (err) {

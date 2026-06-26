@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { MapPin, ArrowLeft, Store, ExternalLink } from "lucide-react";
@@ -44,13 +44,8 @@ export default function MarketPage() {
     setError(null);
     try {
       // 1. Get market by slug
-      const { data: market, error } = await supabase
-        .from("markets")
-        .select("*")
-        .eq("slug", marketSlug)
-        .single();
+      const market = await marketsApi.getMarketBySlug(marketSlug);
       
-      if (error) throw error;
       if (!market) {
         setError('Market not found');
         setSelectedMarket(null);

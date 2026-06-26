@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { backendApi } from '@/lib/api/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatPrice } from '@/lib/constants';
 import Header from '@/components/Header';
@@ -31,16 +31,10 @@ export default function ProductPage() {
       if (!id) return;
       setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*, shops(*)')
-          .eq('id', id)
-          .single();
-
-        if (error) throw error;
+        const { data } = await backendApi.get(`/products/${id}`);
         setProduct(data);
-        if (data.images?.length > 0) setSelectedImage(data.images[0]);
-        else if (data.image_url) setSelectedImage(data.image_url);
+        if (data?.images?.length > 0) setSelectedImage(data.images[0]);
+        else if (data?.image_url) setSelectedImage(data.image_url);
       } catch (err: any) {
         console.error('Product Load Error:', err);
         toast.error("Asset node not found in Nexus");
@@ -59,13 +53,11 @@ export default function ProductPage() {
     }
     setSubmittingEnquiry(true);
     try {
-        const { error } = await supabase.from('enquiries').insert([{
-            buyer_id: user.id,
-            seller_id: product.seller_id || product.shops?.owner_id,
+        await backendApi.post('/enquiries', {
             product_id: product.id,
-            message: enquiryMessage || "I am interested in this product. Please provide more details."
-        }]);
-        if (error) throw error;
+            shop_id: product.shop_id,
+            message: enquiryMessage
+        });
         toast.success("Enquiry Pulse Transmitted Successfully! The seller will contact you shortly.");
         setShowEnquiryForm(false);
         setEnquiryMessage('');

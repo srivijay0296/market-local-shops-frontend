@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 import { useNavigate } from "react-router-dom";
 
 export default function CreateMarket() {
@@ -8,12 +8,12 @@ export default function CreateMarket() {
 
     const handleSubmit = async (e: any) => {
         e.preventDefault();
-
-        const { error } = await supabase.from("markets").insert([form]);
-
-        if (!error) {
+        try {
+            await backendApi.post('/markets', form);
             alert("Created!");
             navigate("/admin/markets");
+        } catch (err: any) {
+            alert(err.message || "Failed to create market");
         }
     };
 

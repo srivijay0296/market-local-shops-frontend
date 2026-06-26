@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { backendApi } from '@/lib/api/client';
 import client from './client';
 
 export const usersApi = {
@@ -35,12 +35,7 @@ export const usersApi = {
     if (updates.phone !== undefined) payload.phone = updates.phone;
     if (updates.address !== undefined) payload.address = updates.address;
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(payload)
-      .eq('id', id)
-      .select()
-      .maybeSingle();
+    const { data, error } = await backendApi.put(`/profiles/${id}`, payload);
 
     if (error) throw error;
     return data;

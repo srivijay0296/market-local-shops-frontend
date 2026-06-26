@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 import { getMarkets, createShop } from "@/services/api";
 import { toast } from "sonner";
 import { ChevronLeft, Store, Tag, Map, User, Save, Info, MapPin, Phone } from "lucide-react";

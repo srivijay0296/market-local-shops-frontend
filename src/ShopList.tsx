@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 
 export default function ShopList() {
     const [shops, setShops] = useState([]);
     const [category, setCategory] = useState("");
 
     const fetchShops = async () => {
-        let query = supabase.from("shops").select("*");
+        let query = backendApi.get('/shops');
 
         if (category) {
-            query = query.eq("category", category);
+            query = query, { params: { category: category } };
         }
 
         const { data } = await query;

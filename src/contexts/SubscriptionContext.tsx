@@ -1,7 +1,7 @@
 // src/contexts/SubscriptionContext.tsx
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { backendApi } from '@/lib/api/client';
 
 interface Subscription {
   id: string;
@@ -77,20 +77,13 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
         }
 
         try {
-          const { error } = await supabase
-            .from('profiles')
-            .update({
-              subscription_status: 'ACTIVE',
-              payment_status: 'PAID',
-              subscription_plan: period.toUpperCase(),
+          await backendApi.put(`/profiles/${user.id}`, {
+              subscription_plan: period === 'yearly' ? 'YEARLY' : 'MONTHLY',
               payment_date: startDate.toISOString(),
               expiry_date: endDate.toISOString(),
               subscription_expires_at: endDate.toISOString(),
               last_payment_id: response.razorpay_payment_id || response.id || 'pay_unknown'
-            })
-            .eq('id', user.id);
-
-          if (error) throw error;
+            });
           await refreshProfile();
         } catch (err) {
           console.error('Failed to update subscription in profiles database table:', err);

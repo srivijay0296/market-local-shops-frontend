@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 import { useNavigate } from "react-router-dom";
 import ConfirmModal from "@/components/admin/ConfirmModal";
 
@@ -11,8 +11,12 @@ export default function MarketsList() {
     const navigate = useNavigate();
 
     const fetchMarkets = async () => {
-        const { data, error } = await supabase.from("markets").select("*");
-        if (!error) setMarkets(data || []);
+        try {
+            const { data } = await backendApi.get('/markets');
+            setMarkets(data || []);
+        } catch (err) {
+            console.error('Failed to fetch markets:', err);
+        }
     };
 
     // 👉 Open modal
@@ -24,10 +28,12 @@ export default function MarketsList() {
     // 👉 Confirm delete
     const confirmDelete = async () => {
         if (!selectedId) return;
-
-        await supabase.from("markets").delete().eq("id", selectedId);
-        setOpen(false);
-        fetchMarkets();
+        try {
+            await backendApi.delete(`/markets/${selectedId}`);
+        } finally {
+            setOpen(false);
+            fetchMarkets();
+        }
     };
 
     useEffect(() => {

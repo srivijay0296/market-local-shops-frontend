@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ChevronLeft, Package, Building, ListOrdered, DollarSign, Save, FileText, Hash, Image as ImageIcon, Database } from "lucide-react";
 import { FormInput } from "@/components/admin/FormInput";
 import ImageUpload from "@/components/ImageUpload";
-import { supabase } from "@/lib/supabase";
+
 
 export default function CreateProduct() {
   const { user } = useAuth();
@@ -47,14 +47,8 @@ export default function CreateProduct() {
   };
 
   const checkSchema = async () => {
-    // Proactive check for 'category_id' column to avoid 400 Bad Request
-    const { error } = await supabase.from('products').select('category_id').limit(1);
-    if (error && error.code === 'PGRST204') {
-        console.warn("⚠️ 'category_id' column missing in products table. Neutralizing field.");
-        setHasCategoryColumn(false);
-    } else {
-        setHasCategoryColumn(true);
-    }
+    // Spring Boot backend always supports the category field — no schema probe needed.
+    setHasCategoryColumn(true);
   };
 
   const fetchShops = async () => {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { backendApi } from '@/lib/api/client';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -35,20 +35,11 @@ export default function SellerDashboard() {
     const fetchSellerData = async () => {
       try {
         // Mocking some data for the demo since analytics table might be empty
-        const { data: vendor } = await supabase
-          .from('vendors')
-          .select('id')
-          .eq('user_id', user.id)
-          .single();
+        const { data: vendor } = await backendApi.get('/vendors', { params: { user_id: user.id } });
 
         if (vendor) {
            // Fetch orders for this vendor
-           const { data: orders } = await supabase
-             .from('order_items')
-             .select('*, order:orders(*)')
-             .eq('vendor_id', vendor.id)
-             .order('created_at', { ascending: false })
-             .limit(5);
+           const { data: orders } = await backendApi.get('/order-items', { params: { vendor_id: vendor.id, sort: 'created_at_desc', limit: 5 } });
            
            setRecentOrders(orders || []);
            

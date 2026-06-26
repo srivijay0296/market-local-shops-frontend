@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { backendApi } from '@/lib/api/client';
 
 // ── Logger utility (structured, consistently prefixed) ────────────────────────
 const LOG = {
@@ -38,7 +38,7 @@ export interface MarketPayload {
 
 // ── Session guard ─────────────────────────────────────────────────────────────
 async function requireSession(operation: string) {
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  const { data: { session }, error: sessionError } = await Promise.resolve({ data: { session: null } });
 
   if (sessionError) {
     LOG.error(`[${operation}] Session fetch error`, sessionError);
@@ -64,8 +64,8 @@ function autoSlug(name: string): string {
 }
 
 /**
- * 🏪 Markets API — Direct Supabase Integration
- * All write operations require an active user session (admin RLS enforced on DB).
+ * 🏪 Markets API
+ * All write operations require an active user session.
  */
 export const marketsApi = {
 
@@ -73,62 +73,48 @@ export const marketsApi = {
   async getMarkets(): Promise<Market[]> {
     LOG.info('getMarkets() called');
 
-    const { data, error } = await supabase
-      .from('markets')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
+    try {
+      const { data } = await backendApi.get('/markets', { params: { sort: 'created_at_desc' } });
+      LOG.info(`getMarkets() returned ${data?.length ?? 0} markets`);
+      return data || [];
+    } catch (error) {
       LOG.error('getMarkets() failed', error);
       throw error;
     }
-
-    LOG.info(`getMarkets() returned ${data?.length ?? 0} markets`);
-    return data || [];
   },
 
   // ── GET market by slug ──────────────────────────────────────────────────────
   async getMarketBySlug(slug: string): Promise<Market | null> {
     LOG.info(`getMarketBySlug("${slug}")`);
 
-    const { data, error } = await supabase
-      .from('markets')
-      .select('*')
-      .eq('slug', slug)
-      .maybeSingle(); // avoids 406 when no match
-
-    if (error) {
+    try {
+      const { data } = await backendApi.get('/markets', { params: { slug: slug } });
+      if (!data) LOG.warn(`getMarketBySlug("${slug}") — no market found`);
+      return data;
+    } catch (error) {
       LOG.error(`getMarketBySlug("${slug}") failed`, error);
       throw error;
     }
-
-    if (!data) LOG.warn(`getMarketBySlug("${slug}") — no market found`);
-    return data;
   },
 
   // ── GET market by ID ────────────────────────────────────────────────────────
   async getMarketById(id: string): Promise<Market | null> {
     LOG.info(`getMarketById("${id}")`);
 
-    const { data, error } = await supabase
-      .from('markets')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error) {
+    try {
+      const { data } = await backendApi.get('/markets', { params: { id: id } });
+      return data;
+    } catch (error) {
       LOG.error(`getMarketById("${id}") failed`, error);
       throw error;
     }
-
-    return data;
   },
 
   // ── CREATE market ───────────────────────────────────────────────────────────
   /**
-   * Creates a new market. Requires the user to be logged in (RLS: admin role).
+   * Creates a new market. Requires the user to be logged in.
    * NOTE: The markets table does NOT have an owner_id column — do not pass one.
-   * Ownership / access control is enforced by Supabase RLS checking profile.role = 'admin'.
+   * Ownership / access control is enforced by the backend.
    */
   async createMarket(payload: MarketPayload): Promise<Market> {
     // ✅ Step 1: Verify session exists
@@ -158,46 +144,41 @@ export const marketsApi = {
     });
 
     // ✅ Step 4: Execute insert
-    const { data, error } = await supabase
-      .from('markets')
-      .insert([cleanPayload])
-      .select()
-      .maybeSingle();
+    try {
+      const { data } = await backendApi.post('/markets', cleanPayload);
 
-    // ✅ Step 5: Detailed error reporting
-    if (error) {
-      LOG.error('createMarket() INSERT failed', error);
-
-      // Translate common Supabase/PostgREST error codes to user-friendly messages
-      if (error.code === '42501') {
+      if (!data) {
+        LOG.warn('createMarket() — insert returned no data');
         throw new Error(
-          `Permission denied. Your account (${session.user.email}) does not have admin privileges. ` +
-          `Make sure your profile role is set to 'admin' in the Supabase profiles table.`
+          'Market was not created. ' +
+          `Ensure your profile role is 'admin'. User: ${session.user.email}`
         );
       }
-      if (error.code === '23505') {
+
+      LOG.info(`createMarket() SUCCESS — id: ${data.id}, slug: "${data.slug}"`);
+      return data;
+    } catch (error: any) {
+      LOG.error('createMarket() INSERT failed', error);
+
+      // Translate common error codes to user-friendly messages
+      if (error?.response?.data?.code === '42501' || error.code === '42501') {
+        throw new Error(
+          `Permission denied. Your account (${session.user.email}) does not have admin privileges. ` +
+          `Make sure your profile role is set to 'admin'.`
+        );
+      }
+      if (error?.response?.data?.code === '23505' || error.code === '23505') {
         throw new Error(`A market with the slug "${cleanPayload.slug}" already exists. Please choose a different name or slug.`);
       }
-      if (error.code === '42P01') {
+      if (error?.response?.data?.code === '42P01' || error.code === '42P01') {
         throw new Error('The markets table does not exist. Please run the database migration first.');
       }
-      if (error.code === 'PGRST301') {
+      if (error?.response?.data?.code === 'PGRST301' || error.code === 'PGRST301') {
         throw new Error('JWT expired or invalid. Please sign out and sign back in.');
       }
-      // Generic fallback with full Supabase error
-      throw new Error(`Market creation failed [${error.code}]: ${error.message}${error.hint ? ` — Hint: ${error.hint}` : ''}`);
+      // Generic fallback with full error
+      throw new Error(`Market creation failed: ${error.message}`);
     }
-
-    if (!data) {
-      LOG.warn('createMarket() — insert returned no data (RLS may have silently rejected)');
-      throw new Error(
-        'Market was not created. This is usually caused by a Row Level Security policy rejecting the insert. ' +
-        `Ensure your profile role is 'admin' in Supabase. User: ${session.user.email}`
-      );
-    }
-
-    LOG.info(`createMarket() SUCCESS — id: ${data.id}, slug: "${data.slug}"`);
-    return data;
   },
 
   // ── UPDATE market ───────────────────────────────────────────────────────────
@@ -216,26 +197,21 @@ export const marketsApi = {
       update:  cleanUpdate,
     });
 
-    const { data, error } = await supabase
-      .from('markets')
-      .update(cleanUpdate)
-      .eq('id', id)
-      .select()
-      .maybeSingle();
+    try {
+      const { data } = await backendApi.put(`/markets/${id}`, cleanUpdate);
 
-    if (error) {
+      if (!data) {
+        LOG.warn(`updateMarket("${id}") — market not found or RLS rejected update`);
+        throw new Error(`Market ${id} not found or you do not have permission to update it.`);
+      }
+
+      LOG.info(`updateMarket("${id}") SUCCESS`);
+      return data;
+    } catch (error: any) {
       LOG.error(`updateMarket("${id}") failed`, error);
-      if (error.code === '42501') throw new Error('Permission denied — admin role required to update markets.');
-      throw new Error(`Market update failed [${error.code}]: ${error.message}`);
+      if (error?.response?.data?.code === '42501' || error.code === '42501') throw new Error('Permission denied — admin role required to update markets.');
+      throw new Error(`Market update failed: ${error.message}`);
     }
-
-    if (!data) {
-      LOG.warn(`updateMarket("${id}") — market not found or RLS rejected update`);
-      throw new Error(`Market ${id} not found or you do not have permission to update it.`);
-    }
-
-    LOG.info(`updateMarket("${id}") SUCCESS`);
-    return data;
   },
 
   // ── DELETE market ───────────────────────────────────────────────────────────
@@ -244,19 +220,16 @@ export const marketsApi = {
 
     LOG.info(`deleteMarket("${id}") — by user ${session.user.id}`);
 
-    const { error } = await supabase
-      .from('markets')
-      .delete()
-      .eq('id', id);
+    try {
+      await backendApi.delete(`/markets/${id}`);
 
-    if (error) {
+      LOG.info(`deleteMarket("${id}") SUCCESS`);
+      return true;
+    } catch (error: any) {
       LOG.error(`deleteMarket("${id}") failed`, error);
-      if (error.code === '42501') throw new Error('Permission denied — admin role required to delete markets.');
-      if (error.code === '23503') throw new Error('Cannot delete — this market has shops or other records linked to it. Remove those first.');
-      throw new Error(`Market deletion failed [${error.code}]: ${error.message}`);
+      if (error?.response?.data?.code === '42501' || error.code === '42501') throw new Error('Permission denied — admin role required to delete markets.');
+      if (error?.response?.data?.code === '23503' || error.code === '23503') throw new Error('Cannot delete — this market has shops or other records linked to it. Remove those first.');
+      throw new Error(`Market deletion failed: ${error.message}`);
     }
-
-    LOG.info(`deleteMarket("${id}") SUCCESS`);
-    return true;
   },
 };

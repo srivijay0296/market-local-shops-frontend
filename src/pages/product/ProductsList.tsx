@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 import { useNavigate } from "react-router-dom";
 
 export default function ProductsList() {
@@ -7,13 +7,13 @@ export default function ProductsList() {
     const navigate = useNavigate();
 
     const fetchProducts = async () => {
-        const { data } = await supabase.from("products").select("*");
+        const { data } = await backendApi.get('/products');
         setProducts(data || []);
     };
 
     const deleteProduct = async (id: number) => {
         if (!confirm("Delete product?")) return;
-        await supabase.from("products").delete().eq("id", id);
+        await backendApi.delete(`/products/${id}`);
         fetchProducts();
     };
 

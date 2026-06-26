@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 import { toast } from "@/hooks/use-toast";
 import ConfirmModal from "@/components/admin/ConfirmModal";
 import { Plus } from "lucide-react";
@@ -21,13 +21,14 @@ export default function Shops() {
 
   const fetchShops = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("shops").select("*");
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      const { data } = await backendApi.get('/shops');
       setShops(data as Shop[]);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -40,15 +41,16 @@ export default function Shops() {
   );
 
   const handleDelete = async (id: number) => {
-    const { error } = await supabase.from("shops").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      await backendApi.delete(`/shops/${id}`);
       toast({ title: "Deleted", description: "Shop deleted successfully" });
       fetchShops();
+    } catch (err: any) {
+      toast({ title: "Delete failed", description: err.message, variant: "destructive" });
+    } finally {
+      setShowConfirm(false);
+      setSelectedId(null);
     }
-    setShowConfirm(false);
-    setSelectedId(null);
   };
 
   const openConfirm = (id: number) => {

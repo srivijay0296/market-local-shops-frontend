@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 
 export default function ShopsExplorerPage() {
     const [shops, setShops] = useState<any[]>([]);
@@ -9,10 +9,7 @@ export default function ShopsExplorerPage() {
     }, []);
 
     const fetchShops = async () => {
-        const { data } = await supabase
-            .from("shops")
-            .select("*")
-            .order("created_at", { ascending: false });
+        const { data } = await backendApi.get('/shops', { params: { sort: 'created_at_desc' } });
 
         setShops(data || []);
     };

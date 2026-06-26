@@ -99,7 +99,7 @@ export default function ServerConsole() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <MetricCard icon={<Zap className="text-amber-400" />} label="Latency" value={status?.latency ? `${status.latency}ms` : '---'} detail={status?.latency && status.latency < 50 ? 'Optimal' : 'Standard'} />
               <MetricCard icon={<Activity className="text-indigo-400" />} label="Uptime" value="99.99%" detail="Zero Crashes" />
-              <MetricCard icon={<Database className="text-emerald-400" />} label="DB Link" value="Active" detail="Supabase Nexus" />
+              <MetricCard icon={<Database className="text-emerald-400" />} label="DB Link" value="Active" detail="PostgreSQL Nexus" />
             </div>
 
             {/* MAIN STATUS DISPLAY */}
@@ -115,7 +115,7 @@ export default function ServerConsole() {
                     <KVRow label="Environment" value={status?.environment || 'UNKNOWN'} highlight />
                     <KVRow label="Active Port" value={status?.port?.toString() || '---'} />
                     <KVRow label="API Node" value="Express Node.js" />
-                    <KVRow label="Auth Engine" value="Supabase JWT" />
+                    <KVRow label="Auth Engine" value="Spring Boot JWT" />
                     <KVRow label="Uptime" value={`${Math.floor(((status as any)?.uptime ?? 0) / 60)} min`} />
                   </div>
                 </div>

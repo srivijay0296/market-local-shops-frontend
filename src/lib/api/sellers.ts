@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { backendApi } from '@/lib/api/client';
 
 export interface Seller {
   id: string;
@@ -26,7 +26,7 @@ const mapShopToSeller = (shop: any): Seller | null => {
     location: shop.location || "Bargur",
     description: shop.description,
     profile_image: shop.image_url,
-    shop_banner: shop.image_url, // For now, use same as profile if banner missing
+    shop_banner: shop.image_url,
     market_id: shop.market_id,
     created_at: shop.created_at
   };
@@ -36,32 +36,14 @@ export const sellersApi = {
   // Get seller by user id (owner_id in shops)
   async getProfileByUserId(userId: string): Promise<Seller | null> {
     if (!userId) return null;
-    const { data, error } = await supabase
-      .from('shops')
-      .select('*, owner:profiles!owner_id(name)')
-      .eq('owner_id', userId)
-      .maybeSingle();
-
-    if (error) {
-      console.error('[sellersApi.getProfileByUserId] Error:', error.message);
-      throw error;
-    }
+    const { data } = await backendApi.get('/shops', { params: { owner_id: userId } });
     return mapShopToSeller(data);
   },
 
   // Get seller by id (public lookup on shops)
   async getProfileById(id: string): Promise<Seller | null> {
     if (!id) return null;
-    const { data, error } = await supabase
-      .from('shops')
-      .select('*, owner:profiles!owner_id(name)')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error) {
-      console.error('[sellersApi.getProfileById] Error:', error.message);
-      throw error;
-    }
+    const { data } = await backendApi.get(`/shops/${id}`);
     return mapShopToSeller(data);
   },
 
@@ -79,32 +61,13 @@ export const sellersApi = {
       is_approved: true
     };
 
-    const { data: upsertData, error: upsertError } = await supabase
-      .from('shops')
-      .upsert(payload, { onConflict: 'owner_id' })
-      .select('*, owner:profiles!owner_id(name)')
-      .maybeSingle();
-
-    if (upsertError) {
-      console.error('[sellersApi.upsertProfile] Error:', upsertError.message);
-      throw upsertError;
-    }
-
-    return mapShopToSeller(upsertData)!;
+    const { data } = await backendApi.post('/shops/upsert', payload);
+    return mapShopToSeller(data)!;
   },
 
   // Get all sellers (public lookup on shops)
   async getAllSellers(): Promise<Seller[]> {
-    const { data, error } = await supabase
-      .from('shops')
-      .select('*, owner:profiles!owner_id(name)')
-      .eq('is_approved', true)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('[sellersApi.getAllSellers] Error:', error.message);
-      throw error;
-    }
+    const { data } = await backendApi.get('/shops', { params: { is_approved: true, sort: 'created_at_desc' } });
     return (data || []).map(mapShopToSeller).filter(Boolean) as Seller[];
   }
 };

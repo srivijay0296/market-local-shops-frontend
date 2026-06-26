@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 import { useParams, useNavigate } from "react-router-dom";
 
 export default function EditMarket() {
@@ -14,12 +14,7 @@ export default function EditMarket() {
 
     useEffect(() => {
         const fetch = async () => {
-            const { data } = await supabase
-                .from("markets")
-                .select("*")
-                .eq("id", id)
-                .single();
-
+            const { data } = await backendApi.get(`/markets/${id}`);
             if (data) setForm(data);
         };
         fetch();
@@ -28,7 +23,7 @@ export default function EditMarket() {
     const updateMarket = async (e: any) => {
         e.preventDefault();
 
-        await supabase.from("markets").update(form).eq("id", id);
+        await backendApi.put(`/markets/${id}`, form);
         navigate("/admin/markets");
     };
 

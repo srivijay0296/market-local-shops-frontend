@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 import { Store, Phone, Mail, FileText, CheckCircle, Store as StoreIcon, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
@@ -43,7 +43,7 @@ export default function ShopRequestForm() {
     const fetchMarketsFromAPI = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase.from("markets").select("id, name");
+        const { data, error } = await backendApi.get('/markets');
         if (error) throw error;
         setMarkets(data || []);
       } catch (err: any) {
@@ -115,16 +115,7 @@ export default function ShopRequestForm() {
       };
       
       console.log("SHOP REQUEST PAYLOAD", insertPayload);
-      const { error } = await supabase.from("shop_requests").insert(insertPayload);
-      if (error) {
-        console.log("SUPABASE ERROR", {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
-        throw error;
-      }
+      await backendApi.post('/shop_requests', insertPayload);
       
       setSubmitted(true);
       toast.success("Shop request submitted successfully!");

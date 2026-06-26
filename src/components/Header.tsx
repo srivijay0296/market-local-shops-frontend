@@ -23,7 +23,13 @@ export default function Header() {
     const fetchCategories = async () => {
       try {
         const cats = await categoriesApi.getCategories();
-        if (cats) setCategories(cats);
+        if (Array.isArray(cats)) {
+          setCategories(cats);
+        } else if (cats?.content && Array.isArray(cats.content)) {
+          setCategories(cats.content);
+        } else if (cats?.data && Array.isArray(cats.data)) {
+          setCategories(cats.data);
+        }
       } catch (err) {
         console.error(err);
       }

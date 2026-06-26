@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { backendApi } from '@/lib/api/client';
 import { HERO_IMAGES, MARKET_META, CATEGORIES } from '@/lib/constants';
 import ProductCard from './ProductCard';
 import Header from './Header';
@@ -21,8 +21,8 @@ export default function AppLayout() {
   useEffect(() => {
     const fetchData = async () => {
       const [colRes, prodRes] = await Promise.all([
-        supabase.from('ecom_collections').select('*').eq('is_visible', true),
-        supabase.from('ecom_products').select('*').eq('status', 'active')
+        backendApi.get('/products', { params: { is_visible: true } }),
+        backendApi.get('/products', { params: { status: 'active' } })
       ]);
 
       if (colRes.data) setCollections(colRes.data);

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 import { toast } from "sonner";
 import { Lock, Loader2, CheckCircle2, ShieldCheck, ArrowRight } from "lucide-react";
 import FloatingInput from "@/components/FloatingInput";
@@ -25,12 +25,7 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: password
-      });
-
-      if (error) throw error;
-
+      await backendApi.post('/auth/reset-password', { password });
       setSuccess(true);
       toast.success("Password updated successfully! 🎉");
       setTimeout(() => navigate("/login"), 2000);

@@ -82,7 +82,7 @@ export default function OtpInput({ value, onChange, disabled, autoFocus }: OtpIn
           onChange={(e) => handleChange(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           onPaste={handlePaste}
-          onFocus={(e) => e.target.select()}
+          onFocus={(e) => e.target}
           aria-label={`OTP digit ${i + 1}`}
           className={[
             "w-12 h-14 text-center text-xl font-black rounded-2xl border-2 outline-none",

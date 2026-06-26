@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { marketsApi, Market } from '@/lib/api/markets';
 import { productsApi } from '@/lib/api/products';
-import { supabase } from '@/lib/supabase';
+import { backendApi } from '@/lib/api/client';
 import { formatPrice } from '@/lib/constants';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -40,10 +40,7 @@ export default function MarketDashboard() {
         setMarket(marketData);
 
         // Fetch shops for this market, then get their products
-        const { data: shopsInMarket } = await supabase
-          .from('shops')
-          .select('id')
-          .eq('market_id', marketData.id);
+        const { data: shopsInMarket } = await backendApi.get('/shops', { params: { market_id: marketData.id } });
         
         const shopIds = (shopsInMarket || []).map((s: any) => s.id);
         
@@ -58,7 +55,7 @@ export default function MarketDashboard() {
         setProducts(prods);
         
         // Fetch vendors specific to this market
-        const { data: vData } = await supabase.from('vendors').select('*').eq('market_id', marketData.id);
+        const { data: vData } = await backendApi.get('/vendors', { params: { market_id: marketData.id } });
         setVendors(vData || []);
 
       } catch (err) {

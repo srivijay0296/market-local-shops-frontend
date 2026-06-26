@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 import { toast } from "sonner";
 import { CreditCard, Search, Calendar, AlertTriangle, ShieldCheck } from "lucide-react";
 
@@ -12,13 +12,7 @@ export default function AdminSubscriptions() {
     try {
       setLoading(true);
       // Query profiles table for all sellers
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'SELLER')
-        .order('trial_start_date', { ascending: false });
-
-      if (error) throw error;
+      const { data } = await backendApi.get('/profiles', { params: { role: 'SELLER', sort: 'trial_start_date_desc' } });
       setSellers(data || []);
     } catch (err: any) {
       toast.error(err.message || "Failed to load subscription list");

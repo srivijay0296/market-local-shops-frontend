@@ -39,8 +39,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Sync Logic
   // 1. Load initially from localStorage for Guests
-  // 2. If logged in, fetch from Supabase and merge? 
-  // For now, let's keep it simple: if logged in, Supabase is source of truth.
+  // 2. If logged in, fetch from backend and merge? 
+  // For now, let's keep it simple: if logged in, backend is source of truth.
   
   useEffect(() => {
     const initCart = async () => {

@@ -1,14 +1,9 @@
-import { supabase } from '../supabase';
+import { backendApi } from '@/lib/api/client';
 
 export const categoriesApi = {
   // Get all categories
   async getCategories() {
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .order('name');
-      
-    if (error) throw error;
+    const { data } = await backendApi.get('/categories', { params: { sort: 'name_desc' } });
     return data;
   }
 };

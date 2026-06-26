@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
@@ -41,33 +41,16 @@ export default function SellerProfilePage() {
 
       try {
          // 🔥 Fetch Shop Details
-         const { data: sellerData, error: sErr } = await supabase
-            .from("shops")
-            .select("*, market:markets(name)")
-            .eq("id", id)
-            .maybeSingle();
-
-         if (sErr) throw sErr;
+         const { data: sellerData } = await backendApi.get(`/shops/${id}`);
          setSeller(sellerData);
 
          if (sellerData) {
              // 🔥 Fetch Products
-             const { data: productData, error: pErr } = await supabase
-                .from("products")
-                .select("*")
-                .eq("shop_id", id)
-                .order("created_at", { ascending: false });
-
-             if (pErr) console.warn("Failed to load products for shop");
+             const { data: productData } = await backendApi.get('/products', { params: { shop_id: id, sort: 'created_at_desc' } });
              setProducts(productData || []);
 
              // 🔥 Fetch Feed Posts
-             const { data: postData } = await supabase
-                .from("seller_posts")
-                .select("*")
-                .eq("shop_id", id)
-                .order("created_at", { ascending: false });
-
+             const { data: postData } = await backendApi.get('/seller_posts', { params: { shop_id: id, sort: 'created_at_desc' } });
              setPosts(postData || []);
          }
       } catch (err) {

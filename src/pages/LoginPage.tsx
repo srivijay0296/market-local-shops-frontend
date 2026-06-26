@@ -190,13 +190,7 @@ export default function LoginPage() {
               {/* SOCIAL AUTH GOOGLE */}
               <button
                 onClick={async () => {
-                   const { supabase } = await import("@/lib/supabase");
-                   await supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: {
-                      redirectTo: window.location.origin
-                    }
-                  });
+                   toast({ title: "Google login not yet configured", description: "Please use Email or Phone login." } as any);
                 }}
                 className="
                   w-full py-4 rounded-2xl border border-white/10 bg-[#ea4335]/10 

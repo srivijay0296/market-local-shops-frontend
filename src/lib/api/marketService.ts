@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { backendApi } from '@/lib/api/client';
 
 // ── Logger (consistent with markets.ts) ──────────────────────────────────────
 const LOG = {
@@ -28,11 +28,11 @@ export interface MarketPayload {
  * ─────────────────────────────────────────────────────────────────────────────
  * Session guard — must be called before any write operation.
  * NOTE: The markets table does NOT have an owner_id column.
- *       Write access is controlled by Supabase RLS: profile.role = 'admin'.
+ *       Write access is controlled by the backend.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 async function getVerifiedSession(operation: string) {
-  const { data: { session }, error } = await supabase.auth.getSession();
+  const { data: { session }, error } = await Promise.resolve({ data: { session: null } });
 
   if (error) {
     LOG.error(`[${operation}] Auth.getSession() error`, error);
@@ -71,11 +71,7 @@ export async function insertMarket(payload: MarketPayload) {
 
   LOG.info('insertMarket() — payload', { user_id: session.user.id, ...insertData });
 
-  const { data, error } = await supabase
-    .from('markets')
-    .insert(insertData)
-    .select()
-    .maybeSingle();
+  const { data, error } = await backendApi.post('/markets', insertData);
 
   if (error) {
     LOG.error('insertMarket() failed', error);
@@ -116,12 +112,7 @@ export async function updateMarket(id: string, payload: Partial<MarketPayload>) 
 
   LOG.info(`updateMarket("${id}")`, { user_id: session.user.id, update: updateData });
 
-  const { data, error } = await supabase
-    .from('markets')
-    .update(updateData)
-    .eq('id', id)
-    .select()
-    .maybeSingle();
+  const { data, error } = await backendApi.put(`/markets/${id}`, updateData);
 
   if (error) {
     LOG.error(`updateMarket("${id}") failed`, error);
@@ -141,12 +132,7 @@ export async function deleteMarket(id: string) {
 
   LOG.info(`deleteMarket("${id}") — user: ${session.user.id}`);
 
-  const { data, error } = await supabase
-    .from('markets')
-    .delete()
-    .eq('id', id)
-    .select()
-    .maybeSingle();
+  const { data, error } = await backendApi.delete(`/markets/${id}`);
 
   if (error) {
     LOG.error(`deleteMarket("${id}") failed`, error);
@@ -173,24 +159,22 @@ export async function uploadMarketImage(file: File, folder: string = 'markets') 
 
   LOG.info(`uploadMarketImage() — uploading "${filePath}"`, { user_id: session.user.id, size: file.size });
 
-  const { data, error } = await supabase.storage
-    .from('market-images')
-    .upload(filePath, file, {
-      upsert:      true,
-      contentType: file.type || 'image/jpeg',
-    });
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('folder', folder);
+  formData.append('filePath', filePath);
+
+  const { data, error } = await backendApi.post('/markets/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
 
   if (error) {
     LOG.error(`uploadMarketImage("${filePath}") failed`, error);
     throw new Error(`Image upload failed: ${error.message}`);
   }
 
-  const { data: urlData } = supabase.storage
-    .from('market-images')
-    .getPublicUrl(filePath);
-
-  LOG.info(`uploadMarketImage() SUCCESS — url: ${urlData.publicUrl}`);
-  return urlData.publicUrl;
+  LOG.info(`uploadMarketImage() SUCCESS — url: ${data.url}`);
+  return data.url;
 }
 
 /**
@@ -204,12 +188,10 @@ export async function listMarkets(
 ) {
   LOG.info(`listMarkets() — search:"${search}" limit:${limit} offset:${offset}`);
 
-  let query = supabase.from('markets').select('*');
+  const params = new URLSearchParams({ sort: 'created_at_desc', limit: String(limit), offset: String(offset) });
+  if (search) params.append('search', `%${search}%`);
 
-  if (search) query = query.ilike('name', `%${search}%`);
-  query = query.range(offset, offset + limit - 1).order('created_at', { ascending: false });
-
-  const { data, error } = await query;
+  const { data, error } = await backendApi.get(`/markets?${params.toString()}`);
 
   if (error) {
     LOG.error('listMarkets() failed', error);
@@ -223,11 +205,11 @@ export async function listMarkets(
 /**
  * Count markets with optional search.
  */
-export async function countMarkets(search?: string) {
-  let query = supabase.from('markets').select('*', { count: 'exact', head: true });
-  if (search) query = query.ilike('name', `%${search}%`);
-
-  const { count, error } = await query;
+  const params = new URLSearchParams();
+  if (search) params.append('search', `%${search}%`);
+  
+  const { data, error } = await backendApi.get(`/markets/count?${params.toString()}`);
+  const count = data?.count || 0;
   if (error) {
     LOG.error('countMarkets() failed', error);
     throw new Error(`Count failed [${error.code}]: ${error.message}`);
@@ -241,11 +223,7 @@ export async function countMarkets(search?: string) {
 export async function getMarketById(id: string) {
   LOG.info(`getMarketById("${id}")`);
 
-  const { data, error } = await supabase
-    .from('markets')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
+  const { data, error } = await backendApi.get(`/markets/${id}`);
 
   if (error) {
     LOG.error(`getMarketById("${id}") failed`, error);
@@ -261,10 +239,10 @@ export async function getMarketById(id: string) {
 export async function getMarketsByIds(ids: string[]) {
   if (!ids.length) return [];
 
-  const { data, error } = await supabase
-    .from('markets')
-    .select('*')
-    .in('id', ids);
+  const params = new URLSearchParams();
+  ids.forEach(id => params.append('id', id));
+  
+  const { data, error } = await backendApi.get(`/markets/bulk?${params.toString()}`);
 
   if (error) {
     LOG.error('getMarketsByIds() failed', error);

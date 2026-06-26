@@ -1,3 +1,1 @@
-import { supabase } from "../../integrations/supabase/client";
-
-export const createClient = () => supabase;
+// Deprecated stub. Use Java Spring Boot REST APIs instead.

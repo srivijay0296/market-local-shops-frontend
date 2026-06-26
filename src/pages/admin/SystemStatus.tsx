@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api/client";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 
 export default function SystemStatus() {
     const [diag, setDiag] = useState<any>(null);
@@ -149,7 +149,7 @@ export default function SystemStatus() {
                         
                         <div className="flex-1 space-y-3 font-mono text-[11px] leading-relaxed max-h-64 overflow-y-auto pr-4 custom-scrollbar">
                            <LogItem time="09:12:44" type="inf" msg="Core environment initialized. Path: /api/system/diagnostics" />
-                           <LogItem time="09:12:45" type="db" msg="Supabase session authenticated via Service Role proxy." />
+                           <LogItem time="09:12:45" type="db" msg="Database session authenticated via Service Role proxy." />
                            <LogItem time="09:12:45" type="net" msg="CORS Header Injection: Access-Control-Allow-Origin: *" color="text-indigo-400" />
                            <LogItem time="09:12:46" type="sys" msg="Node JS thread pool expansion complete. 8 workers active." />
                            {diag && <LogItem time={new Date().toLocaleTimeString()} type="res" msg={`Health Check Status: ${diag.services?.rest_api?.status || 'ONLINE'}. Memory Heap: Optimistic.`} color="text-emerald-400 font-bold" />}

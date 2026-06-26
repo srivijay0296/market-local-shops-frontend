@@ -1,65 +1,38 @@
-import { supabase } from '@/lib/supabase';
+import { backendApi } from '@/lib/api/client';
 
 /**
- * 🛒 CART ENGINE v3.1 (Supabase Direct)
- * Updated to use the standard 'cart' table.
+ * 🛒 CART ENGINE - Spring Boot REST API
  */
 export const cartApi = {
   async getCart(userId: string) {
-    const { data, error } = await supabase
-      .from('cart')
-      .select('*, product:products(name, price, images, image_url, shop_id)')
-      .eq('user_id', userId);
-
-    if (error) {
+    try {
+      const { data } = await backendApi.get('/cart', { params: { user_id: userId } });
+      return data || [];
+    } catch (error) {
       console.error('🛒 Cart Retrieval Protocol Failure:', error);
       return [];
     }
-    return data || [];
   },
 
   async addToCart(userId: string, productId: string, quantity: number = 1) {
-    const { data, error } = await supabase
-      .from('cart')
-      .upsert({ user_id: userId, product_id: productId, quantity }, { onConflict: 'user_id, product_id' })
-      .select()
-      .single();
-
-    if (error) throw error;
+    const { data } = await backendApi.post('/cart', { user_id: userId, product_id: productId, quantity });
     return data;
   },
 
   async updateQuantityByProduct(userId: string, productId: string, quantity: number) {
-    const { data, error } = await supabase
-      .from('cart')
-      .update({ quantity })
-      .eq('user_id', userId)
-      .eq('product_id', productId)
-      .select()
-      .single();
-
-    if (error) throw error;
+    const { data } = await backendApi.put('/cart', { quantity }, {
+      params: { user_id: userId, product_id: productId }
+    });
     return data;
   },
 
   async removeFromCartByProduct(userId: string, productId: string) {
-    const { error } = await supabase
-      .from('cart')
-      .delete()
-      .eq('user_id', userId)
-      .eq('product_id', productId);
-
-    if (error) throw error;
+    await backendApi.delete('/cart', { params: { user_id: userId, product_id: productId } });
     return true;
   },
 
   async clearCart(userId: string) {
-    const { error } = await supabase
-      .from('cart')
-      .delete()
-      .eq('user_id', userId);
-
-    if (error) throw error;
+    await backendApi.delete('/cart', { params: { user_id: userId } });
     return true;
   }
 };

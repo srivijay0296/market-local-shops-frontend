@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 import { usersApi } from "@/lib/api/users";
 import { ChevronLeft, User, Mail, Shield, Save, RefreshCw, Phone, MapPin, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -24,20 +24,23 @@ export default function EditUser() {
   useEffect(() => {
     const fetchProfile = async () => {
       setFetching(true);
-      const { data, error } = await supabase.from("profiles").select("*").eq("id", id).single();
-      if (!error && data) {
-        setForm({
-           name: data.name || "",
-           email: data.email || "",
-           phone: data.phone || "",
-           address: data.address || "",
-           role: (data.role || "BUYER").toUpperCase(),
-           is_approved: data.is_approved !== false
-        });
-      } else {
+      try {
+        const { data } = await backendApi.get(`/profiles/${id}`);
+        if (data) {
+          setForm({
+             name: data.name || "",
+             email: data.email || "",
+             phone: data.phone || "",
+             address: data.address || "",
+             role: (data.role || "BUYER").toUpperCase(),
+             is_approved: data.is_approved !== false
+          });
+        }
+      } catch {
         toast.error("Failed to load user details.");
+      } finally {
+        setFetching(false);
       }
-      setFetching(false);
     };
     fetchProfile();
   }, [id]);

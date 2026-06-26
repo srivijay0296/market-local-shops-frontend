@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 import { useNavigate, Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -51,81 +51,21 @@ export default function SellerDashboard() {
     setLoading(true);
     try {
       // 1. Fetch Shop
-      let shopData = null;
-      try {
-        const { data, error } = await supabase
-          .from('shops')
-          .select('*, markets(*)')
-          .eq('owner_id', user.id)
-          .maybeSingle();
-        if (error) throw error;
-        shopData = data;
-      } catch (e) {
-        console.warn("Failed fetching shop with markets, falling back to simple shops select:", e);
-        const { data, error } = await supabase
-          .from('shops')
-          .select('*')
-          .eq('owner_id', user.id)
-          .maybeSingle();
-        if (error) throw error;
-        shopData = data;
-      }
+      const shopRes = await backendApi.get('/shops', { params: { owner_id: user.id } });
+      const shopData = shopRes.data || null;
       setShop(shopData);
 
       if (shopData) {
-        // 2. Fetch Products for this specific shop (Requirement 1 & 6)
-        let productsData = [];
-        try {
-          const { data, error } = await supabase
-            .from('products')
-            .select(`
-              id,
-              name,
-              price,
-              image_url,
-              images,
-              description,
-              is_approved,
-              category,
-              created_at,
-              shops (
-                  id,
-                  name
-              )
-            `)
-            .eq('shop_id', shopData.id)
-            .order('created_at', { ascending: false });
-          if (error) throw error;
-          productsData = data || [];
-        } catch (e) {
-          console.warn("Failed fetching products with shop join, falling back to simple products select:", e);
-          const { data, error } = await supabase
-            .from('products')
-            .select('*')
-            .eq('shop_id', shopData.id)
-            .order('created_at', { ascending: false });
-          if (error) throw error;
-          productsData = data || [];
-        }
-        setProducts(productsData);
+        // 2. Fetch Products for this specific shop
+        const productsRes = await backendApi.get('/products', { params: { shop_id: shopData.id, sort: 'created_at_desc' } });
+        setProducts(productsRes.data || []);
 
         // 3. Fetch Enquiries for this seller
-        const { data: enquiriesData, error: enquiriesError } = await supabase
-          .from('enquiries')
-          .select('*, profiles(name, email), products(name)')
-          .eq('seller_id', user.id)
-          .order('created_at', { ascending: false });
-        
-        if (enquiriesError) {
-          // Fallback query if foreign key aliases fail
-          const { data: fallbackEnquiries } = await supabase
-            .from('enquiries')
-            .select('*')
-            .eq('seller_id', user.id)
-            .order('created_at', { ascending: false });
-          setEnquiries(fallbackEnquiries || []);
-        } else {
-          setEnquiries(enquiriesData || []);
+        try {
+          const enquiriesRes = await backendApi.get('/enquiries', { params: { seller_id: user.id, sort: 'created_at_desc' } });
+          setEnquiries(enquiriesRes.data || []);
+        } catch {
+          setEnquiries([]);
         }
       }
     } catch (err: any) {
@@ -151,23 +91,16 @@ export default function SellerDashboard() {
     setSaving(true);
     try {
       const productImages = newProduct.images.length > 0 ? newProduct.images : ["https://placehold.co/600x400.png"];
-      const { data, error } = await supabase
-        .from('products')
-        .insert([{
-          seller_id: user.id,
-          shop_id: (user as any)?.shop_id || shop.id,
-          name: newProduct.name,
-          price: parseFloat(newProduct.price) || 0,
-          description: newProduct.description,
-          category: newProduct.category,
-          images: productImages,
-          image_url: productImages[0],
-          is_approved: false // Requires admin moderation
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
+      await backendApi.post('/products', {
+        shop_id: shop.id,
+        name: newProduct.name,
+        price: parseFloat(newProduct.price) || 0,
+        description: newProduct.description,
+        category: newProduct.category,
+        images: productImages,
+        image_url: productImages[0],
+        is_approved: false,
+      });
 
       toast.success(`${newProduct.name} provisioned successfully! Pending approval.`);
       setNewProduct({ name: "", price: "", description: "", category: "", images: [], show_price: true });
@@ -183,8 +116,7 @@ export default function SellerDashboard() {
   const handleDeleteProduct = async (id: string) => {
     if (!confirm("Delete this product permanently?")) return;
     try {
-      const { error } = await supabase.from('products').delete().eq('id', id);
-      if (error) throw error;
+      await backendApi.delete(`/products/${id}`);
       setProducts(products.filter(p => p.id !== id));
       toast.success("Product removed from inventory");
     } catch (err: any) {
@@ -244,6 +176,7 @@ export default function SellerDashboard() {
               </div>
               <button 
                 onClick={() => navigate(`/shop/${shop?.id}`)}
+                title="View Shop"
                 className="p-3 bg-slate-900 text-white rounded-2xl shadow-xl hover:scale-110 transition-all active:scale-90"
               >
                 <ChevronRight className="w-5 h-5" />
@@ -331,6 +264,7 @@ export default function SellerDashboard() {
                                   <select 
                                     value={newProduct.category} required
                                     onChange={e => setNewProduct({...newProduct, category: e.target.value})}
+                                    title="Product Category"
                                     className="w-full bg-slate-50 border border-slate-100 p-5 rounded-2xl outline-none focus:bg-white focus:ring-4 focus:ring-indigo-50 font-black text-[11px] uppercase"
                                   >
                                     <option value="">SELECT BRANCH</option>
@@ -395,11 +329,11 @@ export default function SellerDashboard() {
                       <div key={p.id} className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/50 flex flex-col overflow-hidden group hover:shadow-2xl hover:-translate-y-2 transition-all duration-500">
                         <div className="aspect-[4/5] bg-slate-50 flex items-center justify-center relative overflow-hidden">
                           {p.images?.[0] ? (
-                              <img src={p.images[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                              <img src={p.images[0]} alt={p.name} title={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
                           ) : <Package className="w-10 h-10 text-slate-200" />}
                           
                           <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex flex-col gap-2">
-                              <button onClick={() => handleDeleteProduct(p.id)} className="p-2.5 bg-rose-500 text-white rounded-xl shadow-lg hover:bg-rose-600 active:scale-90 transition-all">
+                              <button onClick={() => handleDeleteProduct(p.id)} title="Delete Product" className="p-2.5 bg-rose-500 text-white rounded-xl shadow-lg hover:bg-rose-600 active:scale-90 transition-all">
                                  <Trash2 className="w-4 h-4" />
                               </button>
                           </div>

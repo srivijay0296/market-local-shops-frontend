@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 import { toast } from "sonner";
 import { Phone, ShieldCheck, Loader2, RefreshCw, ArrowLeft, CheckCircle2 } from "lucide-react";
 import OtpInput from "@/components/OtpInput";
@@ -46,17 +46,12 @@ export default function PhoneLogin({ onBack }: PhoneLoginProps) {
     const normalized = normalizePhone(phone);
     setLoading(true);
     try {
-      const { error: otpError } = await supabase.auth.signInWithOtp({ 
-        phone: normalized,
-      });
-      if (otpError) throw otpError;
+      await backendApi.post('/auth/otp/send', { phone: normalized });
       setStep("otp");
       setResendTimer(60);
       toast.success(`OTP sent to ${normalized} 📱`);
     } catch (err: any) {
-      const msg = err.message?.includes("Phone")
-        ? "Invalid phone number format. Use 10 digits or +91XXXXXXXXXX"
-        : err.message || "Failed to send OTP";
+      const msg = err.response?.data?.message || err.message || "Failed to send OTP";
       setError(msg);
       toast.error(msg);
     } finally {
@@ -71,20 +66,14 @@ export default function PhoneLogin({ onBack }: PhoneLoginProps) {
     const normalized = normalizePhone(phone);
     setLoading(true);
     try {
-      const { data, error: vErr } = await supabase.auth.verifyOtp({
+      const { data: authData } = await backendApi.post('/auth/otp/verify', {
         phone: normalized,
         token: otp,
-        type: "sms",
       });
-      if (vErr) throw vErr;
-      if (!data.user) throw new Error("Verification failed — no user returned");
+      if (!authData?.user) throw new Error("Verification failed — no user returned");
 
       // Fetch role from profiles table
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role, is_approved, name")
-        .eq("id", data.user.id)
-        .maybeSingle();
+      const { data: profile } = await backendApi.get(`/profiles/${authData.user.id}`);
 
       const role = (profile?.role || "BUYER").toUpperCase();
       const isApproved = profile?.is_approved ?? true;
@@ -94,7 +83,6 @@ export default function PhoneLogin({ onBack }: PhoneLoginProps) {
 
       await new Promise((r) => setTimeout(r, 900));
 
-      // Role-based redirect with seller approval check
       if (role === "ADMIN") {
         navigate("/admin", { replace: true });
       } else if (role === "SELLER") {

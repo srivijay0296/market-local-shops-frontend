@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Image as ImageIcon, Video, Plus, Trash2, CheckCircle2, XCircle, PlayCircle, ToggleRight, ToggleLeft } from "lucide-react";
@@ -21,12 +21,7 @@ export default function AdminBanners() {
   const fetchBanners = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('banners')
-        .select('*')
-        .order('sort_order', { ascending: true });
-
-      if (error) throw error;
+      const { data } = await backendApi.get('/banners', { params: { sort: 'sort_order_desc' } });
       setBanners(data || []);
     } catch (err: any) {
       toast.error(err.message || "Failed to load banners");
@@ -46,12 +41,7 @@ export default function AdminBanners() {
     }
 
     try {
-      const { error } = await supabase
-        .from('banners')
-        .update({ active: !currentStatus })
-        .eq('id', id);
-
-      if (error) throw error;
+      await backendApi.patch(`/banners/${id}`, { active: !currentStatus });
       
       toast.success(currentStatus ? 'Banner deactivated.' : 'Banner activated.');
       setBanners(banners.map(b => b.id === id ? { ...b, active: !currentStatus } : b));
@@ -69,12 +59,7 @@ export default function AdminBanners() {
     if (!confirm('Are you sure you want to delete this banner? This cannot be undone.')) return;
 
     try {
-      const { error } = await supabase
-        .from('banners')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await backendApi.delete(`/banners/${id}`);
       
       toast.success('Banner deleted successfully.');
       setBanners(banners.filter(b => b.id !== id));
@@ -98,22 +83,14 @@ export default function AdminBanners() {
     try {
       setIsSubmitting(true);
       
-      const { data, error } = await supabase
-        .from('banners')
-        .insert({
-          title: newTitle,
-          image_url: newUrl,
-          link: newLink || null,
-          type: newType,
-          sort_order: newSortOrder,
-          active: true
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      
-      toast.success('Banner added successfully!');
+      const { data } = await backendApi.post('/banners', {
+        title: newTitle,
+        image_url: newUrl,
+        link: newLink,
+        type: newType,
+        sort_order: newSortOrder,
+        active: true,
+      });
       setBanners([...banners, data].sort((a, b) => a.sort_order - b.sort_order));
       
       // Reset Form
@@ -216,6 +193,8 @@ export default function AdminBanners() {
                   value={newSortOrder}
                   onChange={e => setNewSortOrder(parseInt(e.target.value))}
                   min="1"
+                  placeholder="e.g. 1"
+                  title="Sort Order"
                   className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]"
                 />
               </div>

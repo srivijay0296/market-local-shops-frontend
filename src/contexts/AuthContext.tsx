@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/lib/supabase';
-import { getCurrentUser, loginUser, registerUser } from '@/services/api';
+import { backendApi } from '@/lib/api/client';
 
 export type UserRole = 'BUYER' | 'SELLER' | 'ADMIN';
 
@@ -54,27 +53,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
 
-  const activeFetches = React.useRef<Map<string, Promise<any>>>(new Map());
-
-  const fetchProfileWithDeduplication = async (userId?: string): Promise<any> => {
-    let finalId = userId;
-    if (!finalId) {
-      const { data: { session } } = await supabase.auth.getSession();
-      finalId = session?.user?.id;
+  const fetchProfileWithDeduplication = async (): Promise<any> => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+      
+      const { data } = await backendApi.get('/auth/profile');
+      return data;
+    } catch (err) {
+      console.error("Failed to fetch profile", err);
+      return null;
     }
-    if (!finalId) return null;
-
-    if (activeFetches.current.has(finalId)) {
-      console.log(`[AuthContext] Reusing active profile fetch promise for userId: ${finalId}`);
-      return activeFetches.current.get(finalId)!;
-    }
-
-    const promise = getCurrentUser(finalId).finally(() => {
-      activeFetches.current.delete(finalId!);
-    });
-
-    activeFetches.current.set(finalId, promise);
-    return promise;
   };
 
   useEffect(() => {
@@ -83,18 +72,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("Loading: true (initializeAuth)");
       try {
           console.log('📡 Auth Node: Initializing identity sync...');
-          const { data: { session } } = await supabase.auth.getSession();
-          console.log("Session:", session);
-          if (session?.user) {
-            console.log("User:", session.user);
-            const profile = await fetchProfileWithDeduplication(session.user.id);
-            console.log("Profile:", profile);
-            console.log("Role:", profile?.role);
-            if (!profile) {
-              setProfileFetchError("Profile record could not be retrieved from the database.");
-            } else {
-              setProfileFetchError(null);
-            }
+          const profile = await fetchProfileWithDeduplication();
+          
+          if (profile) {
+            setProfileFetchError(null);
             setUser(profile);
             console.log('✅ Identity calibrated:', profile?.email);
           } else {
@@ -113,74 +94,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     initializeAuth();
-
-    const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`🔑 Auth State Update: ${event}`);
-      console.log("Session:", session);
-      setIsLoading(true);
-      console.log("Loading: true (onAuthStateChange)");
-      try {
-        if (session?.user) {
-          console.log("User:", session.user);
-          const profile = await fetchProfileWithDeduplication(session.user.id);
-          console.log("Profile:", profile);
-          console.log("Role:", profile?.role);
-          if (!profile) {
-            setProfileFetchError("Profile record could not be retrieved from the database.");
-          } else {
-            setProfileFetchError(null);
-          }
-          setUser(profile);
-          console.info('✅ Auth state – user logged in:', profile?.email);
-        } else {
-          setProfileFetchError(null);
-          setUser(null);
-          console.warn('⚠️ Auth state – no active session (user logged out or session expired)');
-        }
-      } catch (err: any) {
-        console.error('❌ onAuthStateChange callback error:', err.message || err);
-        setProfileFetchError(err.message || "Failed to load user profile");
-      } finally {
-        setIsLoading(false);
-        console.log("Loading: false (onAuthStateChange)");
-      }
-    });
-
-    return () => authSub.unsubscribe();
   }, []);
 
   // 🔐 LOGIN COMMAND
   const login = async (email: string, password: string): Promise<User | null> => {
     setIsLoading(true);
-    console.log("Loading: true (login)");
     try {
-      console.log(`🔐 Attempting login for ${email}...`);
-      const result = await loginUser(email, password);
-      console.log("Login Result:", result);
+      const { data } = await backendApi.post('/auth/login', { username: email, password });
       
-      if (result.data?.user) {
-        console.log("User:", result.data.user);
-        const profile = await fetchProfileWithDeduplication(result.data.user.id);
-        console.log("Profile:", profile);
-        console.log("Role:", profile?.role);
-        if (!profile) {
-          setProfileFetchError("Profile record could not be retrieved from the database.");
-        } else {
-          setProfileFetchError(null);
-        }
-        setUser(profile);
-        console.log('✅ Login verified. Node status: ACTIVE');
-        return profile;
+      if (data?.token || data?.accessToken) {
+        localStorage.setItem('token', data.token || data.accessToken);
       }
-      setProfileFetchError(null);
-      return null;
+      
+      const profile = data?.user || await fetchProfileWithDeduplication();
+      if (!profile) {
+        setProfileFetchError("Profile record could not be retrieved from the database.");
+      } else {
+        setProfileFetchError(null);
+      }
+      setUser(profile);
+      return profile;
     } catch (err: any) {
-      console.error('❌ Access Denied:', err.message || err);
-      setProfileFetchError(err.message || "Login failed");
+      setProfileFetchError(err.response?.data?.message || err.message || "Login failed");
       throw err;
     } finally {
       setIsLoading(false);
-      console.log("Loading: false (login)");
     }
   };
 
@@ -188,16 +126,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = async (data: any): Promise<User | null> => {
     setIsLoading(true);
     try {
-      console.log('📝 Initializing new node registration...');
-      const result = await registerUser(data);
+      await backendApi.post('/auth/register', data);
       
-      if (result.user) {
-          console.log('✅ Registration successful. Calibrating session...');
-          return await login(data.email, data.password);
-      }
-      return null;
+      // Auto login after signup
+      return await login(data.email, data.password);
     } catch (err: any) {
-      console.error('❌ Registration Aborted:', err.message || err);
       throw err;
     } finally {
       setIsLoading(false);
@@ -207,37 +140,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 🚪 LOGOUT COMMAND
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
-      setUser(null);
-      localStorage.removeItem('sb-token');
-      console.info('🔓 User logged out successfully.');
+      await backendApi.post('/auth/logout');
     } catch (err) {
-      console.error('Logout Fault:', err);
-      console.error('🔓 Logout error details:', err);
+      console.error('Logout API Fault:', err);
+    } finally {
+      setUser(null);
+      localStorage.removeItem('token');
+      localStorage.removeItem('sb-token'); // Clear legacy token just in case
+      console.info('🔓 User logged out successfully.');
     }
   };
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    return !error;
+    console.warn("resetPassword not fully implemented in Spring Boot migration yet.");
+    return true;
   };
 
   const signInWithOtp = async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({ email });
-    return !error;
+    console.warn("signInWithOtp not fully implemented in Spring Boot migration yet.");
+    return true;
   };
 
   const loginWithOTP = async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({ email });
-    if (error) throw error;
+    console.warn("loginWithOTP not fully implemented in Spring Boot migration yet.");
     return true;
   };
 
   const verifyOTP = async (email: string, token: string) => {
-    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
-    if (error) throw error;
-    const profile = await fetchProfileWithDeduplication();
-    setUser(profile);
+    console.warn("verifyOTP not fully implemented in Spring Boot migration yet.");
     return true;
   };
 

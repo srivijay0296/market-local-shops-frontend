@@ -9,28 +9,8 @@ export default defineConfig({
     host: true,
     port: 8080,
     strictPort: false,
-    historyApiFallback: true,
-    // 🔌 Proxy all /api/* calls to Express backend — eliminates CORS in dev
-    proxy: {
-      '/api': {
-        target: 'http://localhost:5000',
-        router: () => {
-          try {
-            const portPath = path.resolve(__dirname, '../.backend-port');
-            const portStr = readFileSync(portPath, 'utf8').trim();
-            if (portStr && !isNaN(Number(portStr))) {
-              return `http://localhost:${portStr}`;
-            }
-          } catch (e) {
-            // ignore and fallback
-          }
-          return 'http://localhost:5000';
-        },
-        changeOrigin: true,
-        secure: false,
-      },
-    },
   },
+  cacheDir: './.vite-fresh',
   envPrefix: "VITE_",
   plugins: [react()],
   resolve: {
@@ -45,7 +25,6 @@ export default defineConfig({
         // Split large chunks to eliminate chunk size warnings
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
-          supabase: ['@supabase/supabase-js'],
           ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
         },
       },

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { backendApi } from '@/lib/api/client';
 import { usersApi } from "@/lib/api/users";
 import { toast } from "sonner";
 import { UserPlus, ArrowLeft, Store, Hash, Home, Phone as PhoneIcon } from "lucide-react";
@@ -8,7 +8,6 @@ import { UserPlus, ArrowLeft, Store, Hash, Home, Phone as PhoneIcon } from "luci
 export default function CreateUser() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [emailLimitHit, setEmailLimitHit] = useState(false);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -23,10 +22,6 @@ export default function CreateUser() {
 
   const getErrorMessage = (err: any): string => {
     const msg = err?.message?.toLowerCase() || "";
-    if (msg.includes("email rate limit") || msg.includes("rate limit") || msg.includes("too many") || msg.includes("over_email_send_rate_limit")) {
-      setEmailLimitHit(true);
-      return "📧 Email limit exceeded. Disable email confirmation in Supabase → Auth → Settings.";
-    }
     if (msg.includes("already registered") || msg.includes("already exists")) {
       return "This email is already registered.";
     }
@@ -39,7 +34,6 @@ export default function CreateUser() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setEmailLimitHit(false);
 
     // Validate seller fields
     if (form.role === 'SELLER') {
@@ -86,19 +80,7 @@ export default function CreateUser() {
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
-      {emailLimitHit && (
-        <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-5">
-          <p className="font-black text-amber-800 text-sm mb-2">⚠️ Supabase Email Limit Reached</p>
-          <p className="text-amber-700 text-xs font-medium leading-relaxed">
-            Free tier allows 2 signup emails/hour.<br/>
-            <strong>Supabase → Authentication → Settings → Email Auth → Disable "Confirm email"</strong>
-          </p>
-          <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer"
-            className="inline-block mt-3 bg-amber-500 text-white text-xs font-black px-4 py-2 rounded-xl hover:bg-amber-600 transition">
-            Open Supabase Dashboard →
-          </a>
-        </div>
-      )}
+
 
       <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
         <div className="flex items-center gap-4 mb-6">
@@ -111,9 +93,7 @@ export default function CreateUser() {
           </div>
         </div>
 
-        <div className="mb-6 bg-blue-50 rounded-xl px-4 py-3">
-          <p className="text-xs text-blue-700 font-bold">💡 Tip: Disable <span className="underline">"Confirm email"</span> in Supabase Auth Settings to avoid email limits.</p>
-        </div>
+
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Role Selection */}

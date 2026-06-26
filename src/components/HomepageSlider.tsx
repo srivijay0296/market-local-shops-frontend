@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { backendApi } from '@/lib/api/client';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Store } from 'lucide-react';
 
@@ -12,14 +12,16 @@ export default function HomepageSlider() {
   useEffect(() => {
     const fetchBanners = async () => {
       try {
-        const { data, error } = await supabase
-          .from('banners')
-          .select('*')
-          .eq('active', true)
-          .order('sort_order', { ascending: true });
-        
-        if (error) throw error;
-        setBanners(data || []);
+        const { data } = await backendApi.get('/banners', { params: { active: true, sort: 'sort_order_desc' } });
+        if (Array.isArray(data)) {
+          setBanners(data);
+        } else if (data?.content && Array.isArray(data.content)) {
+          setBanners(data.content);
+        } else if (data?.data && Array.isArray(data.data)) {
+          setBanners(data.data);
+        } else {
+          setBanners([]);
+        }
       } catch (err) {
         console.error('Error fetching banners:', err);
       } finally {

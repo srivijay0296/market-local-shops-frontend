@@ -1,6 +1,6 @@
 // src/pages/admin/MarketDashboard.tsx
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { backendApi } from '@/lib/api/client';
 import { BarChart3, Users, Package, Shield, Store } from 'lucide-react';
 import { formatPrice } from '@/lib/constants';
 
@@ -40,17 +40,13 @@ export default function MarketDashboard() {
     setLoading(true);
     try {
       // Markets
-      const { data: marketsData, error: marketsErr } = await supabase
-        .from('fallback_markets')
-        .select('id, name');
+      const { data: marketsData, error: marketsErr } = await backendApi.get('/fallback_markets');
       if (marketsErr) throw marketsErr;
       setMarkets(marketsData as Market[]);
 
       // Shop Requests with market name (join manually)
-      const { data: requestsData, error: reqErr } = await supabase
-        .from('shop_requests')
-        .select('*, market: fallback_markets (name)');
-      if (reqErr) throw reqErr;
+      const { data: requestsData } = await backendApi.get('/shop-requests');
+      if (!requestsData) throw new Error('Failed to fetch shop requests');
       const enriched = (requestsData as any[]).map((r) => ({
         id: r.id,
         shop_name: r.shop_name,
@@ -63,17 +59,12 @@ export default function MarketDashboard() {
       setShopRequests(enriched);
 
       // Products with vendor name (join)
-      const { data: prodData, error: prodErr } = await supabase
-        .from('products')
-        .select('*, vendor: vendors (name)');
-      if (prodErr) throw prodErr;
+      const { data: prodData } = await backendApi.get('/products');
+      if (!prodData) throw new Error('Failed to fetch products');
       setProducts(prodData as Product[]);
 
       // Vendors
-      const { data: vendorData, error: vendorErr } = await supabase
-        .from('vendors')
-        .select('id, name, phone');
-      if (vendorErr) throw vendorErr;
+      const { data: vendorData } = await backendApi.get('/vendors');
       setVendors(vendorData as Vendor[]);
     } catch (e) {
       console.error('Dashboard fetch error:', e);
@@ -87,21 +78,13 @@ export default function MarketDashboard() {
   }, []);
 
   const handleApprove = async (id: number) => {
-    const { error } = await supabase
-      .from('shop_requests')
-      .update({ status: 'approved' })
-      .eq('id', id);
-    if (error) console.error(error);
-    else fetchData();
+    await backendApi.put(`/shop-requests/${id}/approve`, {});
+    fetchData();
   };
 
   const handleReject = async (id: number) => {
-    const { error } = await supabase
-      .from('shop_requests')
-      .update({ status: 'rejected' })
-      .eq('id', id);
-    if (error) console.error(error);
-    else fetchData();
+    await backendApi.put(`/shop-requests/${id}/reject`, {});
+    fetchData();
   };
 
   const filteredMarkets = markets.filter((m) =>

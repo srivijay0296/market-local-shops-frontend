@@ -15,7 +15,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import SubscriptionBlocker from "@/components/SubscriptionBlocker";
 import BottomNav from "@/components/BottomNav";
 import ProtectedRoute from "./components/ProtectedRoute";
-import SmartChatbot from "./components/SmartChatbot";
+import NexusChatbot from "./components/NexusChatbot";
 import AdminRoute from "./components/admin/AdminRoute";
 import AdminLayout from "./components/admin/AdminLayout";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -177,7 +177,7 @@ export default function App() {
             </Suspense>
 
             <BottomNav />
-            <SmartChatbot />
+            <NexusChatbot />
           </TooltipProvider>
         </CartProvider>
       </SubscriptionProvider>

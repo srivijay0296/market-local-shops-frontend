@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { backendApi } from '@/lib/api/client';
 
 export interface Order {
   id: string;
@@ -25,40 +25,24 @@ export const ordersApi = {
    * Get all orders with items (Admin)
    */
   async getAllOrders() {
-    const { data, error } = await supabase
-      .from('orders')
-      .select(`
-        *,
-        profiles:user_id(name, email),
-        order_items(
-          *,
-          product:products(name, images)
-        )
-      `)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+    try {
+      const { data } = await backendApi.get('/orders', { params: { sort: 'created_at_desc' } });
+      return data || [];
+    } catch (error) {
+      throw error;
+    }
   },
 
   /**
    * Get orders for a specific user
    */
   async getUserOrders(userId: string) {
-    const { data, error } = await supabase
-      .from('orders')
-      .select(`
-        *,
-        order_items(
-          *,
-          product:products(name, images)
-        )
-      `)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+    try {
+      const { data } = await backendApi.get('/orders', { params: { user_id: userId, sort: 'created_at_desc' } });
+      return data || [];
+    } catch (error) {
+      throw error;
+    }
   },
 
   /**
@@ -75,53 +59,44 @@ export const ordersApi = {
   }) {
     const { userId, total, items, address, customerName, customerPhone, customerEmail } = params;
 
-    // 1. Create the order
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .insert({
-        user_id: userId || null,
+    try {
+      // 1. Create the order
+      const { data: order } = await backendApi.post('/orders', {
+        user_id: userId,
         total_amount: total,
         shipping_address: address,
-        status: 'pending',
         customer_name: customerName,
         customer_phone: customerPhone,
-        customer_email: customerEmail
-      })
-      .select()
-      .single();
+        customer_email: customerEmail,
+        status: 'pending'
+      });
 
-    if (orderError) throw orderError;
+      // 2. Create order items
+      const orderItems = items.map(item => ({
+        order_id: order.id,
+        product_id: item.product_id || item.id,
+        shop_id: item.shop_id || null,
+        quantity: item.quantity,
+        price_at_time: item.price,
+      }));
 
-    // 2. Create order items
-    const orderItems = items.map(item => ({
-      order_id: order.id,
-      product_id: item.product_id || item.id,
-      shop_id: item.shop_id || null,
-      quantity: item.quantity,
-      price_at_time: item.price,
-    }));
+      await backendApi.post('/order_items', { items: orderItems });
 
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(orderItems);
-
-    if (itemsError) throw itemsError;
-
-    return order;
+      return order;
+    } catch (error) {
+      throw error;
+    }
   },
 
   /**
    * Update order status
    */
   async updateStatus(id: string, status: string) {
-    const { data, error } = await supabase
-      .from('orders')
-      .update({ status })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+    try {
+      const { data } = await backendApi.put(`/orders/${id}`, { status });
+      return data;
+    } catch (error) {
+      throw error;
+    }
   }
 };
