@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: namma-market-postgres
+    environment:
+      POSTGRES_DB: namma_market
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Vijayraj143@
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - namma-market-network
+
+  # Spring Boot Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: namma-market-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/namma_market
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Vijayraj143@
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_JPA_SHOW_SQL: "false"
+      SERVER_PORT: 8080
+      SERVER_SERVLET_CONTEXT_PATH: /api
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key_here_min_32_characters}
+      JWT_EXPIRATION_MS: 86400000
+      CORS_ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:3000"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - namma-market-network
+    volumes:
+      - ./backend:/app
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8080/api
+    container_name: namma-market-frontend
+    environment:
+      VITE_API_URL: http://localhost:8080/api
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - namma-market-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  namma-market-network:
+    driver: bridge
