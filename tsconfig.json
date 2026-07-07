@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "useDefineForClassFields": true,
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ESNext"
+    ],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "allowJs": true,
+    "types": ["node"]
+  },
+  "files": ["src/vite-env.d.ts"],
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "market-local-shops-143", "**/*.env", "src/**/*.d.ts"]
+}
