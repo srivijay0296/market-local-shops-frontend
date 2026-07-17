@@ -99,7 +99,7 @@ export default function AdminSellers() {
                         </div>
                         <div>
                           <p className="font-black text-slate-800 uppercase tracking-tight italic">{v.name || 'Nexus Shop'}</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase">{v.id.substring(0,8)}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase">#{v.id}</p>
                         </div>
                       </div>
                     </td>

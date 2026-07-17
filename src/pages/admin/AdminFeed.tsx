@@ -164,7 +164,7 @@ export default function AdminFeed() {
                          <h4 className="font-bold text-sm text-slate-800 truncate mb-1">{post.title || post.caption || "Untitled"}</h4>
                          <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed flex-1">{post.description || post.caption}</p>
                          <div className="mt-3 pt-3 border-t border-slate-100 text-[10px] font-bold text-slate-400 flex justify-between uppercase tracking-wider">
-                            <span>{post.sellers?.shop_name || post.seller_id.substring(0,8)}</span>
+                            <span>{post.sellers?.shop_name || String(post.seller_id)}</span>
                             <span>{new Date(post.created_at).toLocaleDateString()}</span>
                          </div>
                       </div>

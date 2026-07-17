@@ -1,15 +1,15 @@
 import {
-  require_react_dom
-} from "./chunk-4XEC7FFE.js";
-import {
   require_jsx_runtime
-} from "./chunk-B2HMOCGO.js";
+} from "./chunk-CVGP52V2.js";
+import {
+  require_react_dom
+} from "./chunk-SO43GD6T.js";
 import {
   require_react
-} from "./chunk-OC5S6P4L.js";
+} from "./chunk-HQJSOCRU.js";
 import {
   __toESM
-} from "./chunk-SNAQBZPT.js";
+} from "./chunk-RDKGUBC5.js";
 
 // node_modules/@radix-ui/primitive/dist/index.mjs
 var canUseDOM = !!(typeof window !== "undefined" && window.document && window.document.createElement);
@@ -476,20 +476,6 @@ var DismissableLayerBranch = React7.forwardRef((props, forwardedRef) => {
   return (0, import_jsx_runtime3.jsx)(Primitive.div, { ...props, ref: composedRefs });
 });
 DismissableLayerBranch.displayName = BRANCH_NAME;
-function useDismissableLayerSurface() {
-  const context = React7.useContext(DismissableLayerContext);
-  const [node, setNode] = React7.useState(null);
-  React7.useEffect(() => {
-    if (!node) {
-      return;
-    }
-    context.dismissableSurfaces.add(node);
-    return () => {
-      context.dismissableSurfaces.delete(node);
-    };
-  }, [node, context.dismissableSurfaces]);
-  return setNode;
-}
 function usePointerDownOutside(onPointerDownOutside, args) {
   const {
     ownerDocument = globalThis == null ? void 0 : globalThis.document,
@@ -899,6 +885,38 @@ function isFunction(value) {
 }
 var SYNC_STATE = Symbol("RADIX:SYNC_STATE");
 
+// node_modules/@radix-ui/react-visually-hidden/dist/index.mjs
+var React13 = __toESM(require_react(), 1);
+var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
+var VISUALLY_HIDDEN_STYLES = Object.freeze({
+  // See: https://github.com/twbs/bootstrap/blob/main/scss/mixins/_visually-hidden.scss
+  position: "absolute",
+  border: 0,
+  width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: "hidden",
+  clip: "rect(0, 0, 0, 0)",
+  whiteSpace: "nowrap",
+  wordWrap: "normal"
+});
+var NAME = "VisuallyHidden";
+var VisuallyHidden = React13.forwardRef(
+  (props, forwardedRef) => {
+    return (0, import_jsx_runtime5.jsx)(
+      Primitive.span,
+      {
+        ...props,
+        ref: forwardedRef,
+        style: { ...VISUALLY_HIDDEN_STYLES, ...props.style }
+      }
+    );
+  }
+);
+VisuallyHidden.displayName = NAME;
+var Root2 = VisuallyHidden;
+
 export {
   composeEventHandlers,
   useComposedRefs,
@@ -909,12 +927,13 @@ export {
   dispatchDiscreteCustomEvent,
   useCallbackRef,
   DismissableLayer,
-  useDismissableLayerSurface,
   Root,
   Branch,
   useLayoutEffect2,
   Portal,
   Presence,
-  useControllableState
+  useControllableState,
+  VisuallyHidden,
+  Root2
 };
-//# sourceMappingURL=chunk-4OSWHXHW.js.map
+//# sourceMappingURL=chunk-CTU6BDET.js.map

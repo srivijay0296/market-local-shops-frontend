@@ -42,97 +42,43 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // 2. If logged in, fetch from backend and merge? 
   // For now, let's keep it simple: if logged in, backend is source of truth.
   
+  // Sync Logic
   useEffect(() => {
-    const initCart = async () => {
-      setLoading(true);
-      try {
-        if (user) {
-          const dbItems = await cartApi.getCart(user.id);
-          const mappedItems: CartItem[] = dbItems.map(item => ({
-            product_id: item.product_id,
-            quantity: item.quantity,
-            name: item.product?.name || 'Unknown Product',
-            price: item.product?.price || 0,
-            image: item.product?.images?.[0] || '',
-            shop_id: item.product?.shop_id || '',
-          }));
-          setCart(mappedItems);
-        } else {
-          const stored = localStorage.getItem(CART_KEY);
-          if (stored) setCart(JSON.parse(stored));
-        }
-      } catch (err) {
-        console.error("Cart Init Error", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initCart();
+    setLoading(true);
+    try {
+      const stored = localStorage.getItem(CART_KEY);
+      if (stored) setCart(JSON.parse(stored));
+    } catch (err) {
+      console.error("Cart Init Error", err);
+    } finally {
+      setLoading(false);
+    }
   }, [user]);
 
-  // Persistence for Guests
+  // Persistence
   useEffect(() => {
-    if (!user) {
-      localStorage.setItem(CART_KEY, JSON.stringify(cart));
-    }
-  }, [cart, user]);
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  }, [cart]);
 
   const addToCart = useCallback(async (item: Omit<CartItem, 'quantity'>, quantity = 1) => {
-    try {
-      if (user) {
-        await cartApi.addToCart(user.id, item.product_id, quantity);
-        // Refresh local state from DB to be safe
-        const dbItems = await cartApi.getCart(user.id);
-        const mappedItems: CartItem[] = dbItems.map(item => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          name: item.product?.name || '',
-          price: item.product?.price || 0,
-          image: item.product?.images?.[0] || '',
-          shop_id: item.product?.shop_id || '',
-        }));
-        setCart(mappedItems);
-      } else {
-        setCart(prev => {
-          const idx = prev.findIndex(c => c.product_id === item.product_id);
-          if (idx >= 0) {
-            const updated = [...prev];
-            updated[idx] = { ...updated[idx], quantity: updated[idx].quantity + quantity };
-            return updated;
-          }
-          return [...prev, { ...item, quantity }];
-        });
+    setCart(prev => {
+      const idx = prev.findIndex(c => c.product_id === item.product_id);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], quantity: updated[idx].quantity + quantity };
+        return updated;
       }
-      setIsCartOpen(true);
-      toast.success("Added to cart!");
-    } catch (err) {
-      toast.error("Failed to add to cart");
-    }
-  }, [user]);
+      return [...prev, { ...item, quantity }];
+    });
+    setIsCartOpen(true);
+    toast.success("Added to cart!");
+  }, []);
 
   const removeFromCart = useCallback(async (productId: string, _variantId?: string) => {
-    try {
-      if (user) {
-        // Find by product_id
-      }
-      
-      // Traditional approach: remove from state first
-      setCart(prev => prev.filter(c => c.product_id !== productId));
-      
-      if (user) {
-         // This is a bit inefficient without the item ID, so we use product_id based delete
-         await cartApi.removeFromCartByProduct(user.id, productId);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  }, [user]);
+    setCart(prev => prev.filter(c => c.product_id !== productId));
+  }, []);
 
   const updateQuantity = useCallback(async (productId: string, variantIdOrQty?: string | number | null, maybeQty?: number) => {
-    // Support two calling conventions:
-    //   updateQuantity(productId, quantity)           <- CartContext internal
-    //   updateQuantity(productId, variantId, quantity) <- CartPage with variant support
     let quantity: number;
     if (maybeQty !== undefined) {
       quantity = maybeQty;
@@ -144,29 +90,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return removeFromCart(productId);
     }
 
-    try {
-       if (user) {
-          await cartApi.updateQuantityByProduct(user.id, productId, quantity);
-       }
-       setCart(prev => prev.map(c =>
-        c.product_id === productId ? { ...c, quantity } : c
-      ));
-    } catch (err) {
-      console.error(err);
-    }
-  }, [user, removeFromCart]);
+    setCart(prev => prev.map(c =>
+      c.product_id === productId ? { ...c, quantity } : c
+    ));
+  }, [removeFromCart]);
 
   const clearCart = useCallback(async () => {
-    try {
-      if (user) {
-        await cartApi.clearCart(user.id);
-      }
-      setCart([]);
-      localStorage.removeItem(CART_KEY);
-    } catch (err) {
-      console.error(err);
-    }
-  }, [user]);
+    setCart([]);
+    localStorage.removeItem(CART_KEY);
+  }, []);
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);

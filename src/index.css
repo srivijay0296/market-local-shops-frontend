@@ -1,65 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Flipkart Hub Theme */
-    --background: 210 17% 96%;
-    --foreground: 222.2 84% 4.9%;
-
-    --primary: 198 39% 27%; /* NammaMart Deep Slate #2a4f5f */
-    --primary-foreground: 0 0% 100%;
-
-    --accent: 20 90% 54%; /* Flipkart Orange #fb641bish */
-    --accent-foreground: 0 0% 100%;
-
-    --card: 0 0% 100%;
-    --border: 214.3 31.8% 91.4%;
-    --radius: 0.5rem;
+    --background: #FFF8E8;
+    --foreground: #212121;
+    --primary: #FFD400;
+    --primary-foreground: #212121;
+    --secondary: #E53935;
+    --secondary-foreground: #FFFFFF;
+    --accent: #FF6F00;
+    --accent-foreground: #FFFFFF;
+    --card: #FFFFFF;
+    --card-foreground: #212121;
+    --border: #E2E8F0;
+    --radius: 20px;
   }
 
   body {
-    @apply bg-[#F1F3F6] text-[#212121] antialiased selection:bg-[#2a4f5f]/20;
+    @apply bg-background text-foreground antialiased;
     font-family: 'Inter', sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-bold tracking-tight text-slate-800;
+    font-family: 'Poppins', sans-serif;
+    @apply font-bold tracking-tight text-foreground;
   }
 }
 
 @layer components {
-  .flipkart-btn {
-    @apply bg-[#2a4f5f] hover:bg-[#1a3d4d] text-white font-bold py-2.5 px-6 rounded-sm shadow-sm transition-all active:scale-[0.98] disabled:opacity-50;
+  .btn-primary {
+    @apply bg-gradient-yellow text-foreground font-bold py-3 px-8 rounded-full shadow-md hover:shadow-3d transition-all active:scale-[0.98] disabled:opacity-50 relative overflow-hidden;
+  }
+
+  .btn-secondary {
+    @apply bg-gradient-red text-white font-bold py-3 px-8 rounded-full shadow-md hover:shadow-lg transition-all active:scale-[0.98] disabled:opacity-50;
   }
 
   .premium-card {
-    @apply bg-white border border-slate-200/60 shadow-sm rounded-xl overflow-hidden hover:shadow-md transition-shadow duration-300;
+    @apply bg-white border-0 shadow-float rounded-[20px] overflow-hidden hover:shadow-3d transition-all duration-300 transform hover:-translate-y-2;
   }
 
-  .nav-active {
-    @apply bg-[#2a4f5f]/10 text-[#2a4f5f] border-r-4 border-[#2a4f5f];
+  .glass-panel {
+    @apply bg-white/70 backdrop-blur-lg border border-white/40 shadow-glass rounded-[24px];
   }
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
 }
 ::-webkit-scrollbar-track {
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+  @apply bg-primary rounded-full hover:bg-accent transition-colors;
 }
-
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-slide-up {
-  animation: slide-up 0.4s ease-out forwards;
-}
-

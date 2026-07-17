@@ -157,7 +157,7 @@ export default function Markets() {
               markets.map((m) => (
                 <tr key={m.id} className="hover:bg-slate-50/80 transition-colors group">
                   <td className="py-5 px-6 text-sm font-bold text-slate-400">
-                    <span className="truncate block w-12" title={m.id}>#{m.id.substring(0,4)}</span>
+                    <span className="truncate block w-12" title={String(m.id)}>#{m.id}</span>
                   </td>
                   
                   <td className="py-5 px-6">

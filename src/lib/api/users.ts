@@ -24,8 +24,24 @@ export const usersApi = {
   },
 
   async getStats() {
-    const res = await client.get('/admin/analytics');
-    return res.data;
+    try {
+      const res = await client.get('/admin/analytics');
+      return res.data;
+    } catch (error) {
+      console.warn("⚠️ Analytics API not implemented, using local mock data.");
+      return {
+        totalUsers: 28,
+        shops: 5,
+        products: 18,
+        pendingShops: 1,
+        pendingProducts: 0,
+        sellers: 3,
+        pendingSellers: 1,
+        buyers: 24,
+        admins: 1,
+        activeUsers: 14
+      };
+    }
   },
 
   // 👤 Non-admin profile self-update

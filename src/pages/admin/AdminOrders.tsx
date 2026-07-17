@@ -45,7 +45,7 @@ export default function AdminOrders() {
   };
 
   const filteredOrders = orders.filter(o =>
-    o.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    String(o.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
     o.customer_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -95,7 +95,7 @@ export default function AdminOrders() {
                             {expandedOrders.includes(o.id) ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                           </div>
                           <div>
-                            <p className="font-mono font-bold text-slate-800 text-xs tracking-tight">#{o.id.substring(0, 8).toUpperCase()}</p>
+                            <p className="font-mono font-bold text-slate-800 text-xs tracking-tight">#{o.id}</p>
                             <p className="text-[10px] text-slate-500 font-bold flex items-center gap-1 mt-0.5"><Clock className="w-3 h-3" /> {new Date(o.created_at).toLocaleDateString()}</p>
                           </div>
                         </button>
