@@ -38,20 +38,34 @@ export interface MarketPayload {
 
 // ── Session guard ─────────────────────────────────────────────────────────────
 async function requireSession(operation: string) {
-  const { data: { session }, error: sessionError } = await Promise.resolve({ data: { session: null }, error: null as any });
-
-  if (sessionError) {
-    LOG.error(`[${operation}] Session fetch error`, sessionError);
-    throw new Error(`Authentication error: ${sessionError.message}`);
-  }
-
-  if (!session?.user) {
+  const token = localStorage.getItem('token');
+  if (!token) {
     LOG.warn(`[${operation}] No active session — user is not logged in`);
     throw new Error('You must be logged in to perform this action. Please sign in and try again.');
   }
 
-  LOG.info(`[${operation}] Session OK — user_id: ${session.user.id}, role: ${session.user.role ?? 'anon'}`);
-  return session;
+  try {
+    // Decode JWT payload safely (base64url)
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+
+    const decoded = JSON.parse(jsonPayload);
+    const session = {
+      user: {
+        id: decoded.id || decoded.sub || 'unknown',
+        email: decoded.email || decoded.sub || 'unknown',
+        role: decoded.role || 'anon'
+      }
+    };
+    LOG.info(`[${operation}] Session OK — user_id: ${session.user.id}, role: ${session.user.role}`);
+    return session;
+  } catch (err: any) {
+    LOG.error(`[${operation}] Invalid token`, err);
+    throw new Error('Authentication error: Invalid session token');
+  }
 }
 
 // ── Slug auto-generator ───────────────────────────────────────────────────────

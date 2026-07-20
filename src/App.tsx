@@ -68,10 +68,12 @@ const AdminSellers = lazy(() => import("./pages/admin/AdminSellers"));
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
 const AdminBanners = lazy(() => import("./pages/admin/AdminBanners"));
 const AdminFeed = lazy(() => import("./pages/admin/AdminFeed"));
+const CreatePost = lazy(() => import("./pages/admin/CreatePost"));
 const AdminShopRequests = lazy(() => import("./pages/admin/AdminShopRequests"));
 const ServerConsole = lazy(() => import("./pages/admin/ServerConsole"));
 const AdvancedServerControl = lazy(() => import("./pages/admin/AdvancedServerControl"));
 const SystemStatus = lazy(() => import("./pages/admin/SystemStatus"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const PostDetailPage = lazy(() => import("./pages/PostDetailPage"));
 
 // Neural Loading Placeholder
@@ -165,8 +167,10 @@ export default function App() {
                     <Route path="orders" element={<AdminOrders />} />
                     <Route path="banners" element={<AdminBanners />} />
                     <Route path="feed" element={<AdminFeed />} />
+                    <Route path="feed/create" element={<CreatePost />} />
                     <Route path="server" element={<ServerConsole />} />
                     <Route path="system" element={<SystemStatus />} />
+                    <Route path="settings" element={<AdminSettings />} />
                   </Route>
                 </Route>
 

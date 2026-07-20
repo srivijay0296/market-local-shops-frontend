@@ -41,7 +41,7 @@ export default function AdminBanners() {
     }
 
     try {
-      await backendApi.patch(`/banners/${id}`, { active: !currentStatus });
+      await backendApi.put(`/banners/${id}`, { active: !currentStatus });
       
       toast.success(currentStatus ? 'Banner deactivated.' : 'Banner activated.');
       setBanners(banners.map(b => b.id === id ? { ...b, active: !currentStatus } : b));

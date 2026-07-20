@@ -94,11 +94,10 @@ export default function ShopRequestForm() {
         throw new Error("Please fill all required fields");
       }
 
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(user.id)) {
+      if (!(/^\d+$/i.test(String(user.id)) || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(user.id)))) {
         throw new Error("Invalid identity session (User ID format invalid).");
       }
-      if (!uuidRegex.test(formData.market_id)) {
+      if (!(/^\d+$/i.test(String(formData.market_id)) || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(formData.market_id)))) {
         throw new Error("Please select a valid Market Hub.");
       }
 

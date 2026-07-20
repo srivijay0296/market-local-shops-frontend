@@ -32,20 +32,34 @@ export interface MarketPayload {
  * ─────────────────────────────────────────────────────────────────────────────
  */
 async function getVerifiedSession(operation: string) {
-  const { data: { session }, error } = await Promise.resolve({ data: { session: null }, error: null as any });
-
-  if (error) {
-    LOG.error(`[${operation}] Auth.getSession() error`, error);
-    throw new Error(`Session error: ${error.message}`);
-  }
-
-  if (!session?.user?.id) {
+  const token = localStorage.getItem('token');
+  if (!token) {
     LOG.warn(`[${operation}] No authenticated session — aborting`);
     throw new Error('You must be signed in to perform this action.');
   }
 
-  LOG.info(`[${operation}] Session verified — user_id: ${session.user.id}`);
-  return session;
+  try {
+    // Decode JWT payload safely (base64url)
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+
+    const decoded = JSON.parse(jsonPayload);
+    const session = {
+      user: {
+        id: decoded.id || decoded.sub || 'unknown',
+        email: decoded.email || decoded.sub || 'unknown',
+        role: decoded.role || 'anon'
+      }
+    };
+    LOG.info(`[${operation}] Session verified — user_id: ${session.user.id}`);
+    return session;
+  } catch (err: any) {
+    LOG.error(`[${operation}] Auth error`, err);
+    throw new Error(`Session error: Invalid token`);
+  }
 }
 
 /**

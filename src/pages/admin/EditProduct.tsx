@@ -23,8 +23,13 @@ export default function EditProduct() {
     images: [] as string[]
   });
 
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  const isShopIdValid = !!(form.shop_id && uuidRegex.test(form.shop_id) && form.shop_id !== "11111111-1111-1111-1111-111111111111" && form.shop_id !== "demo-shop" && form.shop_id !== "test-shop");
+  const isShopIdValid = !!(
+    form.shop_id &&
+    form.shop_id !== "11111111-1111-1111-1111-111111111111" &&
+    form.shop_id !== "demo-shop" &&
+    form.shop_id !== "test-shop" &&
+    (/^\d+$/i.test(String(form.shop_id)) || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(form.shop_id)))
+  );
 
   useEffect(() => {
     fetchShops();
@@ -44,14 +49,12 @@ export default function EditProduct() {
     try {
       const data = await shopsApi.getShops();
       if (data) {
-        // Filter out any mock/placeholder shops
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
         const validShops = data.filter((s: any) => 
           s.id && 
-          uuidRegex.test(s.id) && 
           s.id !== "11111111-1111-1111-1111-111111111111" && 
           s.id !== "demo-shop" && 
-          s.id !== "test-shop"
+          s.id !== "test-shop" &&
+          (/^\d+$/i.test(String(s.id)) || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(s.id)))
         );
         setShops(validShops);
       }
@@ -98,9 +101,8 @@ export default function EditProduct() {
         throw new Error("Please select a valid, non-placeholder shop.");
       }
 
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(sanitizedShopId)) {
-        throw new Error("Invalid format for shop_id. Expected a valid UUID.");
+      if (!(/^\d+$/i.test(String(sanitizedShopId)) || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(sanitizedShopId)))) {
+        throw new Error("Invalid format for shop_id. Expected a valid integer or UUID.");
       }
 
       const payload = {

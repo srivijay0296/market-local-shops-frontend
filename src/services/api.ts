@@ -4,6 +4,7 @@ import { shopsApi, Shop } from '@/lib/api/shops';
 import { marketsApi, Market, MarketPayload } from '@/lib/api/markets';
 import { usersApi } from '@/lib/api/users';
 import { ordersApi, Order } from '@/lib/api/orders';
+import { normalizeApiResponse } from '@/lib/utils';
 
 // Interface Definitions to replace 'any'
 export interface AuthResponse {
@@ -36,16 +37,19 @@ export interface ShopFilters {
 export const API_SERVER = import.meta.env.VITE_API_URL || '';
 export const BACKEND_API_URL = import.meta.env.VITE_API_URL || '';
 
-export const loginUser = async (username: string, password: string): Promise<AuthResponse> => {
+export const loginUser = async (email: string, password: string): Promise<AuthResponse> => {
   try {
-    const res = await backendApi.post('/auth/login', { username, password });
+    // ✅ Backend expects { email, password } — NOT { username, password }
+    const res = await backendApi.post('/auth/login', { email: email.trim().toLowerCase(), password });
     const token = res.data?.token || res.data?.accessToken;
     if (token) {
       localStorage.setItem('token', token);
+      // ✅ Immediately apply the token to the shared axios instance
+      backendApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
     return { data: { session: res.data, user: res.data?.user || null }, error: null };
   } catch (err: unknown) {
-    const errorMsg = (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data || { message: (err as Error).message };
+    const errorMsg = (err as { response?: { data?: { error?: string; message?: string } }; message?: string })?.response?.data || { message: (err as Error).message };
     return { data: null, error: errorMsg };
   }
 };
@@ -75,7 +79,8 @@ export const getCurrentUser = async (userId?: string): Promise<unknown | null> =
 
 export const getUsers = async (): Promise<unknown[]> => {
   try {
-    return await usersApi.getUsers();
+    const res = await usersApi.getUsers();
+    return normalizeApiResponse(res);
   } catch (err: unknown) {
     console.error("getUsers Error:", err);
     return [];
@@ -114,7 +119,8 @@ export const deleteUser = async (id: string): Promise<unknown> => {
 
 export const getShops = async (f?: ShopFilters): Promise<Shop[]> => {
   try {
-    return await shopsApi.getShops(f);
+    const res = await shopsApi.getShops(f);
+    return normalizeApiResponse<Shop>(res);
   } catch (err: unknown) {
     console.error("getShops Error:", err);
     return [];
@@ -141,7 +147,8 @@ export const createShop = async (data: Partial<Shop>): Promise<Shop> => {
 
 export const getProducts = async (f?: ProductFilters): Promise<Product[]> => {
   try {
-    return await productsApi.getProducts(f);
+    const res = await productsApi.getProducts(f);
+    return normalizeApiResponse<Product>(res);
   } catch (err: unknown) {
     console.error("getProducts Error:", err);
     return [];
@@ -159,7 +166,8 @@ export const createProduct = async (data: Partial<Product> | FormData): Promise<
 
 export const getMarkets = async (): Promise<Market[]> => {
   try {
-    return await marketsApi.getMarkets();
+    const res = await marketsApi.getMarkets();
+    return normalizeApiResponse<Market>(res);
   } catch (err: unknown) {
     console.error("getMarkets Error:", err);
     return [];
@@ -182,7 +190,8 @@ export const createMarket = async (name: string, slug?: string, location?: strin
 
 export const getOrders = async (): Promise<Order[]> => {
   try {
-    return await ordersApi.getAllOrders();
+    const res = await ordersApi.getAllOrders();
+    return normalizeApiResponse<Order>(res);
   } catch (err: unknown) {
     console.error("getOrders Error:", err);
     return [];

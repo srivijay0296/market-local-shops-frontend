@@ -18,7 +18,10 @@ import {
   ChevronUp,
   LogIn,
   Download,
+  ShieldCheck,
+  Target
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Order {
   id: string;
@@ -35,28 +38,28 @@ const STATUS_CONFIG: Record<
   { label: string; color: string; icon: React.ReactNode }
 > = {
   pending: {
-    label: "Order Placed",
-    color: "bg-yellow-100 text-yellow-700 border-yellow-200",
+    label: "Protocol Initiated",
+    color: "bg-warning/10 text-warning border-warning/20",
     icon: <Clock className="w-4 h-4" />,
   },
   processing: {
     label: "Processing",
-    color: "bg-blue-100 text-blue-700 border-blue-200",
+    color: "bg-primary/10 text-primary border-primary/20",
     icon: <Package className="w-4 h-4" />,
   },
   shipped: {
-    label: "Shipped",
-    color: "bg-purple-100 text-purple-700 border-purple-200",
+    label: "In Transit",
+    color: "bg-accent/10 text-accent border-accent/20",
     icon: <Truck className="w-4 h-4" />,
   },
   delivered: {
     label: "Delivered",
-    color: "bg-green-100 text-green-700 border-green-200",
+    color: "bg-success/10 text-success border-success/20",
     icon: <CheckCircle2 className="w-4 h-4" />,
   },
   cancelled: {
-    label: "Cancelled",
-    color: "bg-red-100 text-red-700 border-red-200",
+    label: "Terminated",
+    color: "bg-destructive/10 text-destructive border-destructive/20",
     icon: <XCircle className="w-4 h-4" />,
   },
 };
@@ -68,25 +71,27 @@ function OrderProgress({ status }: { status: string }) {
   if (status === "cancelled") return null;
 
   return (
-    <div className="flex items-center gap-0 mt-4 mb-2 max-w-sm">
+    <div className="flex items-center gap-0 mt-4 mb-2 max-w-sm w-full">
       {STEPS.map((step, i) => {
         const done = i <= currentStep;
         const active = i === currentStep;
         return (
           <div key={step} className="flex items-center flex-1 last:flex-none">
             <div
-              className={`w-6 h-6 rounded-full flex items-center justify-center border-2 text-[10px] font-bold transition-all
-                ${done ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-slate-200 text-slate-400"}
-                ${active ? "ring-2 ring-blue-100 scale-110" : ""}`}
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold transition-all
+                ${done ? "bg-primary text-foreground shadow-lg shadow-primary/20" : "bg-white border-2 border-border text-foreground/40"}
+                ${active ? "scale-110" : ""}`}
             >
               {i + 1}
             </div>
             {i < STEPS.length - 1 && (
-              <div
-                className={`flex-1 h-1 mx-0.5 rounded transition-all ${
-                  i < currentStep ? "bg-blue-600" : "bg-slate-200"
-                }`}
-              />
+              <div className="flex-1 h-1 mx-2 rounded-full bg-border overflow-hidden relative">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: i < currentStep ? "100%" : "0%" }}
+                  className="absolute inset-y-0 left-0 bg-primary"
+                />
+              </div>
             )}
           </div>
         );
@@ -95,7 +100,7 @@ function OrderProgress({ status }: { status: string }) {
   );
 }
 
-function OrderCard({ order }: { order: Order }) {
+function OrderCard({ order, index }: { order: Order, index: number }) {
   const [expanded, setExpanded] = useState(false);
   const statusCfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
   const totalPrice = order.total_amount || order.total_price || 0;
@@ -111,43 +116,51 @@ function OrderCard({ order }: { order: Order }) {
   };
 
   return (
-    <div className="bg-white rounded shadow-sm border border-gray-100 overflow-hidden transform transition hover:shadow-md">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      className="bg-white rounded-3xl shadow-sm border border-border overflow-hidden transform transition-all hover:shadow-md hover:border-primary/20"
+    >
       {/* Order Header */}
-      <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex gap-4">
-           <div className="hidden sm:flex w-12 h-12 bg-gray-50 rounded items-center justify-center">
-             <Package className="w-6 h-6 text-gray-300" />
+      <div className="p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+        
+        <div className="flex gap-4 relative z-10">
+           <div className="w-14 h-14 bg-background rounded-2xl flex items-center justify-center border border-border shrink-0">
+             <Package className="w-7 h-7 text-primary" />
            </div>
            <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Order ID</p>
-            <p className="font-mono text-sm font-bold text-gray-800">
+            <p className="text-[10px] font-bold text-foreground/50 uppercase tracking-widest">Protocol ID</p>
+            <p className="font-display text-lg font-black text-foreground">
               #{order.id.slice(0, 12).toUpperCase()}
             </p>
-            <p className="text-xs text-gray-500 mt-0.5">{date}</p>
+            <p className="text-xs text-foreground/60 font-medium mt-0.5">{date}</p>
           </div>
         </div>
 
-        <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-6">
-          <div className="text-right">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Amount</p>
-            <p className="text-lg font-black text-gray-900">
+        <div className="flex flex-col sm:items-end justify-between sm:justify-end gap-3 sm:gap-4 relative z-10">
+          <div className="sm:text-right">
+            <p className="text-[10px] font-bold text-foreground/50 uppercase tracking-widest">Authorization Value</p>
+            <p className="text-2xl font-black text-primary">
               ₹{totalPrice.toLocaleString("en-IN")}
             </p>
           </div>
           <span
-            className={`inline-flex items-center gap-1 px-3 py-1 rounded text-[10px] font-bold border uppercase tracking-wider ${statusCfg.color}`}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-bold border uppercase tracking-widest ${statusCfg.color}`}
           >
+            {statusCfg.icon}
             {statusCfg.label}
           </span>
         </div>
       </div>
 
-      <div className="px-5 py-3 bg-gray-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-b border-gray-50">
-         <div>
+      <div className="px-6 py-4 bg-background flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-t border-b border-border">
+         <div className="flex-1 w-full max-w-md">
             <OrderProgress status={order.status} />
-            <div className="flex justify-between mt-1 max-w-sm">
+            <div className="flex justify-between mt-2 w-full max-w-sm">
               {STEPS.map((s) => (
-                <span key={s} className={`text-[9px] font-bold uppercase ${s === order.status ? 'text-blue-600' : 'text-gray-400'}`}>
+                <span key={s} className={`text-[9px] font-bold uppercase tracking-widest ${s === order.status ? 'text-primary' : 'text-foreground/40'}`}>
                   {STATUS_CONFIG[s].label.split(' ')[0]}
                 </span>
                 ))}
@@ -155,63 +168,73 @@ function OrderCard({ order }: { order: Order }) {
          </div>
          <button 
            onClick={handleDownloadInvoice}
-           className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded text-xs font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition shadow-sm"
+           className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-border rounded-xl text-xs font-bold text-foreground hover:bg-background hover:border-primary/50 transition-colors shadow-sm shrink-0 uppercase tracking-widest"
          >
-           <Download className="w-3.5 h-3.5" />
-           Invoice
+           <Download className="w-4 h-4" />
+           Manifest
          </button>
       </div>
 
       {/* Expand Toggle */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-center gap-2 px-5 py-3 text-xs text-blue-600 font-bold hover:bg-blue-50 transition border-t border-gray-50"
+        className="w-full flex items-center justify-center gap-2 px-6 py-4 text-xs text-primary font-bold hover:bg-primary/5 transition-colors uppercase tracking-widest"
       >
-        <span>{expanded ? "HIDE ITEMS" : "VIEW ITEMS"}</span>
+        <span>{expanded ? "HIDE ASSETS" : "VIEW ASSETS"}</span>
         {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
       </button>
 
       {/* Order Items */}
-      {expanded && order.items && order.items.length > 0 && (
-        <div className="border-t border-gray-100 divide-y divide-gray-50 animate-in fade-in slide-in-from-top-2">
-          {order.items.map((item) => (
-            <div key={item.id} className="px-5 py-4 flex items-center gap-4">
-              <div className="w-16 h-16 bg-gray-50 rounded border border-gray-100 flex items-center justify-center overflow-hidden">
-                {item.product?.images?.[0] ? (
-                  <img src={item.product.images[0]} alt={item.product?.name} className="w-full h-full object-cover" />
-                ) : (
-                  <ShoppingBag className="w-6 h-6 text-gray-200" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-gray-800 text-sm truncate uppercase tracking-tight">
-                  {item.product?.name || "Product"}
-                </p>
-                {item.vendor?.shop_name && (
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
-                    by {item.vendor.shop_name}
-                  </p>
-                )}
-                <div className="flex items-center gap-3 mt-2">
-                   <p className="text-xs font-bold text-blue-600">₹{(item.price_at_time || 0).toLocaleString("en-IN")}</p>
-                   <p className="text-[10px] text-gray-400 font-bold">QTY: {item.quantity}</p>
+      <AnimatePresence>
+        {expanded && order.items && order.items.length > 0 && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden border-t border-border"
+          >
+            <div className="divide-y divide-border">
+              {order.items.map((item) => (
+                <div key={item.id} className="px-6 py-5 flex items-center gap-5 hover:bg-background/50 transition-colors">
+                  <div className="w-20 h-20 bg-background rounded-xl border border-border flex items-center justify-center overflow-hidden shrink-0">
+                    {item.product?.images?.[0] ? (
+                      <img src={item.product.images[0]} alt={item.product?.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <ShoppingBag className="w-8 h-8 text-foreground/20" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-foreground text-sm truncate uppercase tracking-tight">
+                      {item.product?.name || "Asset"}
+                    </p>
+                    {item.vendor?.shop_name && (
+                      <p className="text-[10px] font-bold text-foreground/50 uppercase tracking-widest mt-1">
+                        Node: {item.vendor.shop_name}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-4 mt-3">
+                       <p className="text-sm font-black text-foreground">₹{(item.price_at_time || 0).toLocaleString("en-IN")}</p>
+                       <div className="w-1 h-1 rounded-full bg-border" />
+                       <p className="text-[10px] text-foreground/50 font-bold uppercase tracking-widest">QTY: {item.quantity}</p>
+                    </div>
+                  </div>
                 </div>
+              ))}
+            </div>
+
+            <div className="px-6 py-5 bg-background border-t border-border space-y-2">
+              <div className="flex items-start gap-3">
+                 <Target className="w-5 h-5 text-primary shrink-0" />
+                 <div>
+                    <p className="text-[10px] font-bold text-foreground/50 uppercase tracking-widest mb-1">Destination Node</p>
+                    <p className="text-sm text-foreground font-medium leading-relaxed max-w-md">{order.shipping_address}</p>
+                 </div>
               </div>
             </div>
-          ))}
-
-          <div className="px-5 py-4 bg-gray-50/50 space-y-2">
-            <div className="flex items-start gap-2">
-               <Truck className="w-4 h-4 text-gray-400 mt-0.5" />
-               <div>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Delivery Address</p>
-                  <p className="text-xs text-gray-600 leading-relaxed font-medium">{order.shipping_address}</p>
-               </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
 
@@ -233,7 +256,7 @@ export default function TrackOrdersPage() {
         setOrders(result || []);
       } catch (err: any) {
         console.error("Error fetching orders:", err);
-        setError("Unable to load your orders. Please try again later.");
+        setError("Unable to sync protocol history. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -243,67 +266,83 @@ export default function TrackOrdersPage() {
   }, [user, isAuthenticated]);
 
   return (
-    <div className="min-h-screen bg-[#F1F3F6] font-sans">
+    <div className="min-h-screen bg-background font-sans">
       <Header />
       <AuthModal />
       <CartDrawer />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24 pb-20">
-        <div className="mb-8 flex items-center justify-between">
-           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-[#2874f0] rounded flex items-center justify-center shadow-lg">
-              <Package className="w-6 h-6 text-white" />
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-32 pb-24">
+        
+        {/* Header Section */}
+        <div className="mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+           <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
+              <Package className="w-7 h-7 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-gray-800 uppercase tracking-tight">My Orders</h1>
-              <p className="text-gray-500 text-xs font-bold border-l-2 border-orange-500 pl-2">Track & Manage Purchases</p>
+              <h1 className="text-3xl font-display font-black text-foreground tracking-tight flex items-center gap-2">
+                 Command <span className="text-primary">Log</span>
+              </h1>
+              <p className="text-foreground/50 text-xs font-bold uppercase tracking-widest mt-1 flex items-center gap-1">
+                 <ShieldCheck className="w-3 h-3 text-success" /> Secure Asset Tracking
+              </p>
             </div>
           </div>
         </div>
 
         {!isAuthenticated ? (
-          <div className="bg-white rounded p-12 flex flex-col items-center text-center shadow-sm">
-            <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-5">
-              <LogIn className="w-10 h-10 text-blue-500" />
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-3xl p-12 flex flex-col items-center text-center shadow-sm border border-border"
+          >
+            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+              <LogIn className="w-10 h-10 text-primary" />
             </div>
-            <h2 className="text-xl font-bold text-gray-800 mb-2">
-              Please sign in to view orders
+            <h2 className="text-2xl font-display font-black text-foreground mb-3">
+              Authentication Required
             </h2>
+            <p className="text-foreground/60 mb-8 max-w-md">Please sync your identity to access your command log and track incoming provisions.</p>
             <button
               onClick={() => setShowAuthModal(true)}
-              className="px-8 py-3 bg-[#2874f0] text-white font-bold rounded hover:bg-blue-700 transition shadow-md uppercase tracking-wider text-sm"
+              className="btn-primary py-4 px-10 text-sm"
             >
-              Sign In
+              Initialize Identity Sync
             </button>
-          </div>
+          </motion.div>
         ) : loading ? (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white h-32 rounded animate-pulse" />
+              <div key={i} className="bg-white h-[200px] rounded-3xl animate-pulse border border-border" />
             ))}
           </div>
         ) : error ? (
-          <div className="bg-white rounded p-12 text-center shadow-sm">
-            <XCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-            <h2 className="text-lg font-bold text-gray-800">{error}</h2>
+          <div className="bg-white rounded-3xl p-12 text-center shadow-sm border border-destructive/20 bg-destructive/5">
+            <XCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-lg font-bold text-foreground">{error}</h2>
           </div>
         ) : orders.length === 0 ? (
-          <div className="bg-white rounded p-16 flex flex-col items-center text-center shadow-sm">
-            <div className="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center mb-5">
-              <ShoppingBag className="w-10 h-10 text-orange-400" />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl p-16 flex flex-col items-center text-center shadow-sm border border-dashed border-border"
+          >
+            <div className="w-24 h-24 bg-background rounded-full flex items-center justify-center mb-6 border border-border">
+              <ShoppingBag className="w-10 h-10 text-foreground/20" />
             </div>
-            <h2 className="text-xl font-bold text-gray-800 mb-2">No orders found</h2>
+            <h2 className="text-2xl font-display font-black text-foreground mb-2">No active protocols</h2>
+            <p className="text-foreground/50 mb-8 max-w-md text-sm">Your command log is empty. Initialize a new provisioning protocol to see it here.</p>
             <Link
               to="/products"
-              className="px-8 py-3 bg-[#fb641b] text-white font-bold rounded hover:bg-orange-600 transition shadow-md uppercase tracking-wider text-sm"
+              className="btn-primary py-4 px-10 text-sm"
             >
-              Start Shopping
+              Access Global Market
             </Link>
-          </div>
+          </motion.div>
         ) : (
-          <div className="space-y-4">
-            {orders.map((order) => (
-              <OrderCard key={order.id} order={order} />
+          <div className="space-y-6">
+            {orders.map((order, i) => (
+              <OrderCard key={order.id} order={order} index={i} />
             ))}
           </div>
         )}

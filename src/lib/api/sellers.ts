@@ -1,4 +1,5 @@
 import { backendApi } from '@/lib/api/client';
+import { normalizeApiResponse } from '@/lib/utils';
 
 export interface Seller {
   id: string;
@@ -37,7 +38,8 @@ export const sellersApi = {
   async getProfileByUserId(userId: string): Promise<Seller | null> {
     if (!userId) return null;
     const { data } = await backendApi.get('/shops', { params: { owner_id: userId } });
-    return mapShopToSeller(data);
+    const arrayData = normalizeApiResponse(data);
+    return arrayData.length > 0 ? mapShopToSeller(arrayData[0]) : null;
   },
 
   // Get seller by id (public lookup on shops)
@@ -68,6 +70,6 @@ export const sellersApi = {
   // Get all sellers (public lookup on shops)
   async getAllSellers(): Promise<Seller[]> {
     const { data } = await backendApi.get('/shops', { params: { is_approved: true, sort: 'created_at_desc' } });
-    return (data || []).map(mapShopToSeller).filter(Boolean) as Seller[];
+    return normalizeApiResponse(data).map(mapShopToSeller).filter(Boolean) as Seller[];
   }
 };

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { backendApi } from '@/lib/api/client';
+import axios from 'axios';
 
 export type UserRole = 'BUYER' | 'SELLER' | 'ADMIN';
 
@@ -53,15 +54,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
 
-  const fetchProfileWithDeduplication = async (): Promise<any> => {
+  /** Normalize raw backend profile DTO → frontend User interface */
+  const normalizeProfile = (data: any): User | null => {
+    if (!data || !data.email) return null;
+    return {
+      id: String(data.id),
+      name: data.name || data.username || data.email,
+      email: data.email,
+      // Backend stores CUSTOMER; frontend calls it BUYER — normalize here
+      role: (data.role === 'CUSTOMER' ? 'BUYER' : (data.role || 'BUYER')) as UserRole,
+      is_approved: data.is_approved ?? true,
+      shop_id: data.shop_id ? String(data.shop_id) : undefined,
+      phone: data.phone,
+      address: data.address,
+    };
+  };
+
+  const fetchProfileWithDeduplication = async (): Promise<User | null> => {
     try {
       const token = localStorage.getItem('token');
       if (!token) return null;
-      
+
       const { data } = await backendApi.get('/auth/profile');
-      return data;
-    } catch (err) {
-      console.error("Failed to fetch profile", err);
+      return normalizeProfile(data);
+    } catch (err: any) {
+      // 401 = token expired or invalid — clear storage silently
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        localStorage.removeItem('token');
+        delete backendApi.defaults.headers.common['Authorization'];
+        return null;
+      }
+      console.error('Failed to fetch profile', err);
       return null;
     }
   };
@@ -69,27 +92,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initializeAuth = async () => {
       setIsLoading(true);
-      console.log("Loading: true (initializeAuth)");
+      console.log('Loading: true (initializeAuth)');
       try {
-          console.log('📡 Auth Node: Initializing identity sync...');
-          const profile = await fetchProfileWithDeduplication();
-          
-          if (profile) {
-            setProfileFetchError(null);
-            setUser(profile);
-            console.log('✅ Identity calibrated:', profile?.email);
-          } else {
-            console.log('ℹ️ Auth Node: No active session found.');
-            setProfileFetchError(null);
-            setUser(null);
-          }
-      } catch (err: any) {
-          console.error('❌ Nexus Auth Collision:', err.message || err);
-          setProfileFetchError(err.message || "Failed to load user profile");
+        console.log('📡 Auth Node: Initializing identity sync...');
+        // Restore auth header from stored token before profile fetch
+        const storedToken = localStorage.getItem('token');
+        if (storedToken) {
+          backendApi.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+        }
+        const profile = await fetchProfileWithDeduplication();
+
+        if (profile) {
+          setProfileFetchError(null);
+          setUser(profile);
+          console.log('✅ Identity calibrated:', profile?.email);
+        } else {
+          console.log('ℹ️ Auth Node: No active session found.');
+          setProfileFetchError(null);
           setUser(null);
+        }
+      } catch (err: any) {
+        console.error('❌ Nexus Auth Collision:', err.message || err);
+        setProfileFetchError(err.message || 'Failed to load user profile');
+        setUser(null);
       } finally {
-          setIsLoading(false);
-          console.log("Loading: false (initializeAuth)");
+        setIsLoading(false);
+        console.log('Loading: false (initializeAuth)');
       }
     };
 
@@ -100,23 +128,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string): Promise<User | null> => {
     setIsLoading(true);
     try {
-      const { data } = await backendApi.post('/auth/login', { username: email, password });
-      
-      if (data?.token || data?.accessToken) {
-        localStorage.setItem('token', data.token || data.accessToken);
+      // ✅ Backend expects { email, password } — NOT { username, password }
+      const { data } = await backendApi.post('/auth/login', { email: email.trim().toLowerCase(), password });
+
+      const token = data?.token || data?.accessToken;
+      if (token) {
+        localStorage.setItem('token', token);
+        // ✅ Immediately set the Authorization header for subsequent requests
+        backendApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       }
-      
-      const profile = data?.user || await fetchProfileWithDeduplication();
+
+      // Build user profile from login response (AuthResponse DTO) or fetch separately
+      let profile: User | null = null;
+      if (data?.id && data?.email) {
+        profile = normalizeProfile(data);
+      } else {
+        profile = await fetchProfileWithDeduplication();
+      }
+
       if (!profile) {
-        setProfileFetchError("Profile record could not be retrieved from the database.");
+        setProfileFetchError('Profile record could not be retrieved from the database.');
       } else {
         setProfileFetchError(null);
       }
       setUser(profile);
       return profile;
     } catch (err: any) {
-      setProfileFetchError(err.response?.data?.message || err.message || "Login failed");
-      throw err;
+      const msg =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        err.message ||
+        'Login failed';
+      setProfileFetchError(msg);
+      throw new Error(msg);
     } finally {
       setIsLoading(false);
     }
@@ -146,7 +190,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setUser(null);
       localStorage.removeItem('token');
-      localStorage.removeItem('sb-token'); // Clear legacy token just in case
+      localStorage.removeItem('sb-token');
+      // ✅ Clear the default Authorization header
+      delete backendApi.defaults.headers.common['Authorization'];
       console.info('🔓 User logged out successfully.');
     }
   };

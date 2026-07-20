@@ -1,14 +1,22 @@
-/**
- * Signup.tsx
- * BUYER-only self-registration.
- * Sellers are created by Admin → shows info notice.
- */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Mail, Lock, User, Loader2, CheckCircle2, Sparkles, Phone } from "lucide-react";
 import FloatingInput from "@/components/FloatingInput";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+const signupSchema = z.object({
+  name: z.string().min(2, "Full name is required (min 2 chars)."),
+  email: z.string().email("Please enter a valid email address."),
+  phone: z.string().optional(),
+  password: z.string().min(8, "Password must be at least 8 characters."),
+  role: z.enum(["BUYER", "SELLER", "ADMIN"]),
+});
+
+type SignupFormValues = z.infer<typeof signupSchema>;
 
 interface SignupProps {
   onLoginClick?: () => void;
@@ -16,38 +24,28 @@ interface SignupProps {
 
 export default function Signup({ onLoginClick }: SignupProps) {
   const { signup } = useAuth();
-  const navigate   = useNavigate();
+  const navigate = useNavigate();
 
-  const [form, setForm] = useState({ name: "", email: "", password: "", phone: "", role: "BUYER" });
-  const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [apiError, setApiError] = useState("");
 
-  const [showPw,   setShowPw]   = useState(false);
-  const [loading,  setLoading]  = useState(false);
-  const [success,  setSuccess]  = useState(false);
-  const [error,    setError]    = useState("");
+  const { register, handleSubmit, formState: { errors } } = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: { name: "", email: "", phone: "", password: "", role: "BUYER" }
+  });
 
-  const validate = () => {
-    if (!form.name.trim())   return "Full name is required";
-    if (!form.email.trim())  return "Email address is required";
-    if (!form.email.includes("@")) return "Enter a valid email address";
-    if (form.password.length < 8) return "Password must be at least 8 characters";
-    return null;
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    const validationError = validate();
-    if (validationError) { setError(validationError); return; }
-
+  const onSubmit = async (data: SignupFormValues) => {
+    setApiError("");
     setLoading(true);
     try {
       await signup({
-        name:     form.name.trim(),
-        email:    form.email.trim().toLowerCase(),
-        password: form.password,
-        phone:    form.phone.trim() || undefined,
-        role:     form.role,
+        name: data.name.trim(),
+        email: data.email.trim().toLowerCase(),
+        password: data.password,
+        phone: data.phone?.trim() || undefined,
+        role: data.role,
       });
 
       setSuccess(true);
@@ -60,7 +58,7 @@ export default function Signup({ onLoginClick }: SignupProps) {
         msg = "This email is already registered. Try logging in instead.";
       else if (msg.includes("Password should"))
         msg = "Password must be at least 8 characters long.";
-      setError(msg);
+      setApiError(msg);
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -81,37 +79,51 @@ export default function Signup({ onLoginClick }: SignupProps) {
   }
 
   return (
-    <form onSubmit={handleSignup} className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
       <div>
         <h2 className="text-2xl font-black text-white mb-1">Create Account</h2>
         <p className="text-slate-400 text-sm">Join Namma Market — it's free</p>
       </div>
 
-      <FloatingInput id="signup-name"  icon={User}  label="Full Name"      type="text"  value={form.name}     onChange={set("name")}     placeholder="Your full name"    required />
-      <FloatingInput id="signup-email" icon={Mail}  label="Email Address"  type="email" value={form.email}    onChange={set("email")}    placeholder="you@example.com"   required />
-      <FloatingInput id="signup-phone" icon={Phone} label="Phone (optional)" type="tel" value={form.phone}    onChange={set("phone")}    placeholder="+91 XXXXX XXXXX" />
-      <FloatingInput id="signup-pw"    icon={Lock}  label="Password"                    value={form.password} onChange={set("password")} placeholder="Min 8 characters" required
-        showToggle toggled={showPw} onToggle={() => setShowPw((p) => !p)} />
+      <div>
+        <FloatingInput id="signup-name" icon={User} label="Full Name" type="text" {...register("name")} placeholder="Your full name" />
+        {errors.name && <p className="text-red-400 text-[10px] uppercase font-bold tracking-widest mt-1 ml-2">{errors.name.message}</p>}
+      </div>
 
-      {/* Role Selection Dropdown */}
+      <div>
+        <FloatingInput id="signup-email" icon={Mail} label="Email Address" type="email" {...register("email")} placeholder="you@example.com" />
+        {errors.email && <p className="text-red-400 text-[10px] uppercase font-bold tracking-widest mt-1 ml-2">{errors.email.message}</p>}
+      </div>
+
+      <div>
+        <FloatingInput id="signup-phone" icon={Phone} label="Phone (optional)" type="tel" {...register("phone")} placeholder="+91 XXXXX XXXXX" />
+        {errors.phone && <p className="text-red-400 text-[10px] uppercase font-bold tracking-widest mt-1 ml-2">{errors.phone.message}</p>}
+      </div>
+
+      <div>
+        <FloatingInput id="signup-pw" icon={Lock} label="Password" type={showPw ? "text" : "password"} {...register("password")} placeholder="Min 8 characters" 
+          showToggle toggled={showPw} onToggle={() => setShowPw((p) => !p)} />
+        {errors.password && <p className="text-red-400 text-[10px] uppercase font-bold tracking-widest mt-1 ml-2">{errors.password.message}</p>}
+      </div>
+
       <div className="space-y-1">
         <label className="text-slate-400 text-[10px] font-black uppercase tracking-wider block">Account Type</label>
         <select
           id="signup-role"
-          value={form.role}
-          onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+          {...register("role")}
           className="w-full bg-slate-900/60 border border-slate-800 rounded-2xl px-4 py-4 text-slate-200 text-xs font-bold uppercase tracking-wider focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-300 cursor-pointer"
         >
           <option value="BUYER" className="bg-slate-950 text-slate-200">🛒 Buyer (Shop & Purchase)</option>
           <option value="SELLER" className="bg-slate-950 text-slate-200">🏪 Seller (Manage Shop & Products)</option>
           <option value="ADMIN" className="bg-slate-950 text-slate-200">🛡️ Admin (Manage Platform)</option>
         </select>
+        {errors.role && <p className="text-red-400 text-[10px] uppercase font-bold tracking-widest mt-1 ml-2">{errors.role.message}</p>}
       </div>
 
-      {error && (
+      {apiError && (
         <div className="text-red-400 text-xs font-bold bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 flex items-start gap-2">
           <span className="shrink-0">⚠</span>
-          <span>{error}</span>
+          <span>{apiError}</span>
         </div>
       )}
 

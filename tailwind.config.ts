@@ -5,10 +5,8 @@ import typography from "@tailwindcss/typography";
 export default {
   darkMode: ["class"],
   content: [
-    "./pages/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
-    "./app/**/*.{ts,tsx}",
-    "./src/**/*.{ts,tsx}",
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
   ],
   prefix: "",
   theme: {
@@ -24,44 +22,47 @@ export default {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
-        background: '#FFF8E8',
-        foreground: '#212121',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
         primary: {
-          DEFAULT: '#FFD400',
-          foreground: '#212121'
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))'
         },
         secondary: {
-          DEFAULT: '#E53935',
-          foreground: '#FFFFFF'
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))'
         },
         accent: {
-          DEFAULT: '#FF6F00',
-          foreground: '#FFFFFF'
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))'
         },
         success: {
           DEFAULT: '#16A34A',
           foreground: '#FFFFFF'
         },
         dark: {
-          DEFAULT: '#111111',
+          DEFAULT: '#090D16',
           foreground: '#FFFFFF'
         },
         card: {
-          DEFAULT: '#FFFFFF',
-          foreground: '#212121'
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))'
         },
         popover: {
-          DEFAULT: '#FFFFFF',
-          foreground: '#212121'
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))'
         },
         muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))'
+          DEFAULT: 'hsl(var(--border))',
+          foreground: 'hsl(var(--foreground))'
         },
         destructive: {
-          DEFAULT: '#E53935',
-          foreground: '#FFFFFF'
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))'
         },
+        glass: {
+          DEFAULT: 'rgba(255,255,255,0.07)',
+        }
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
@@ -79,11 +80,11 @@ export default {
         '3d': '0 10px 20px rgba(0,0,0,0.1), 0 6px 6px rgba(0,0,0,0.1), 0 0 100px -10px rgba(255, 212, 0, 0.3)',
       },
       borderRadius: {
-        lg: '20px',
-        md: '16px',
-        sm: '12px',
-        xl: '24px',
-        '2xl': '32px',
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 4px)',
+        sm: 'calc(var(--radius) - 8px)',
+        xl: 'calc(var(--radius) + 4px)',
+        '2xl': 'calc(var(--radius) + 12px)',
       },
       keyframes: {
         'float': {

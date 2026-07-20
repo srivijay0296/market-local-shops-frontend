@@ -1,4 +1,4 @@
-import React, { InputHTMLAttributes } from "react";
+import React, { InputHTMLAttributes, forwardRef } from "react";
 import { LucideIcon } from "lucide-react";
 
 interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -9,14 +9,14 @@ interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
   focusColor?: string;
 }
 
-export function FormInput({
+export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(({
   label,
   icon: Icon,
   iconColor = "text-slate-500",
   helperText,
   focusColor = "blue",
   ...props
-}: FormInputProps) {
+}, ref) => {
   
   // Tailwind dynamic classes check for focus
   const focusRing = {
@@ -34,6 +34,7 @@ export function FormInput({
         {label}
       </label>
       <input
+        ref={ref}
         {...props}
         className={`w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:bg-white focus:ring-4 ${focusRing} outline-none transition-all text-slate-800 font-medium font-sans placeholder:text-slate-400`}
       />
@@ -44,4 +45,6 @@ export function FormInput({
       )}
     </div>
   );
-}
+});
+
+FormInput.displayName = "FormInput";

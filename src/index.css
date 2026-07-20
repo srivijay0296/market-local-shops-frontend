@@ -6,23 +6,45 @@
 
 @layer base {
   :root {
-    --background: #FFF8E8;
-    --foreground: #212121;
-    --primary: #FFD400;
-    --primary-foreground: #212121;
-    --secondary: #E53935;
-    --secondary-foreground: #FFFFFF;
-    --accent: #FF6F00;
-    --accent-foreground: #FFFFFF;
-    --card: #FFFFFF;
-    --card-foreground: #212121;
-    --border: #E2E8F0;
-    --radius: 20px;
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --primary: 43 100% 50%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 0 84% 60%;
+    --secondary-foreground: 0 0% 100%;
+    --accent: 24 95% 53%;
+    --accent-foreground: 0 0% 100%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --border: 214 32% 91%;
+    --input: 210 40% 96%;
+    --ring: 43 100% 50%;
+    --radius: 24px;
+  }
+
+  .dark {
+    --background: 222 43% 6%;
+    --foreground: 210 40% 98%;
+    --primary: 50 100% 50%;
+    --primary-foreground: 222 43% 6%;
+    --secondary: 0 91% 71%;
+    --secondary-foreground: 0 0% 100%;
+    --accent: 28 96% 61%;
+    --accent-foreground: 0 0% 100%;
+    --card: 222 41% 13%;
+    --card-foreground: 210 40% 98%;
+    --border: 215 32% 17%;
+    --input: 215 32% 17%;
+    --ring: 50 100% 50%;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', sans-serif;
+  }
+
+  ::selection {
+    @apply bg-primary/30 text-primary-foreground;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -33,29 +55,34 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-gradient-yellow text-foreground font-bold py-3 px-8 rounded-full shadow-md hover:shadow-3d transition-all active:scale-[0.98] disabled:opacity-50 relative overflow-hidden;
+    @apply bg-gradient-to-r from-primary to-accent text-primary-foreground font-bold py-3.5 px-8 rounded-full shadow-lg shadow-accent/15 hover:shadow-xl hover:shadow-accent/25 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50 relative overflow-hidden;
   }
 
   .btn-secondary {
-    @apply bg-gradient-red text-white font-bold py-3 px-8 rounded-full shadow-md hover:shadow-lg transition-all active:scale-[0.98] disabled:opacity-50;
+    @apply bg-white dark:bg-slate-900 border border-border text-foreground font-bold py-3.5 px-8 rounded-full shadow-md hover:bg-slate-50 dark:hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50;
   }
 
   .premium-card {
-    @apply bg-white border-0 shadow-float rounded-[20px] overflow-hidden hover:shadow-3d transition-all duration-300 transform hover:-translate-y-2;
+    @apply bg-card border border-border shadow-float rounded-[24px] overflow-hidden hover:shadow-xl hover:scale-[1.01] transition-all duration-300;
   }
 
   .glass-panel {
-    @apply bg-white/70 backdrop-blur-lg border border-white/40 shadow-glass rounded-[24px];
+    @apply bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-white/20 dark:border-white/5 shadow-glass rounded-[24px];
+  }
+
+  .glass-card {
+    @apply bg-white/40 dark:bg-slate-900/30 backdrop-blur-lg border border-white/20 dark:border-white/5 shadow-glass rounded-[20px] hover:bg-white/60 dark:hover:bg-slate-900/40 transition-all duration-300;
   }
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-primary rounded-full hover:bg-accent transition-colors;
+  @apply bg-slate-300 dark:bg-slate-800 rounded-full hover:bg-primary/50 transition-colors;
 }

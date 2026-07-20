@@ -1,14 +1,19 @@
-/**
- * EmailLogin.tsx
- * Email + Password login with role-based redirect.
- * Handles: wrong password, email not found, seller pending approval.
- */
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Mail, Lock, Loader2, Eye, EyeOff, CheckCircle2, ArrowRight } from "lucide-react";
+import { Mail, Lock, Loader2, CheckCircle2, ArrowRight } from "lucide-react";
 import FloatingInput from "@/components/FloatingInput";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email address."),
+  password: z.string().min(6, "Password must be at least 6 characters."),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 interface EmailLoginProps {
   onSignupClick?: () => void;
@@ -20,24 +25,21 @@ export default function EmailLogin({ onSignupClick }: EmailLoginProps) {
   const location  = useLocation();
   const from      = (location.state as any)?.from?.pathname || "/";
 
-  const [email,   setEmail]   = useState("");
-  const [pw,      setPw]      = useState("");
   const [showPw,  setShowPw]  = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [error,   setError]   = useState("");
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    if (!email.trim() || !pw) { setError("Email and password are required"); return; }
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" }
+  });
 
+  const onSubmit = async (data: LoginFormValues) => {
     setLoading(true);
     try {
-      const user = await login(email.trim().toLowerCase(), pw);
+      const user = await login(data.email.toLowerCase(), data.password);
       if (!user) {
         setLoading(false);
-        setError("Invalid email or password. Please verify your credentials.");
         toast.error("Authentication Failed: Invalid credentials.");
         return;
       }
@@ -45,7 +47,6 @@ export default function EmailLogin({ onSignupClick }: EmailLoginProps) {
       const role       = user.role?.toUpperCase();
       const isApproved = user.is_approved;
 
-      // Block unapproved sellers right here — clear UX
       if (role === "SELLER" && !isApproved) {
         toast.warning("Your seller account is pending admin approval");
         navigate("/pending-approval", { replace: true });
@@ -56,18 +57,18 @@ export default function EmailLogin({ onSignupClick }: EmailLoginProps) {
       toast.success(`Welcome back, ${user.name}! 🎉`);
       await new Promise((r) => setTimeout(r, 800));
 
-      if (role === "ADMIN")  navigate("/admin",            { replace: true });
+      if (role === "ADMIN")  navigate("/admin", { replace: true });
       else if (role === "SELLER") navigate("/seller", { replace: true });
       else navigate(from === "/login" ? "/" : from, { replace: true });
 
     } catch (err: any) {
-      const msg = err.message || "Login failed";
-      setError(msg);
-      toast.error(msg);
+      toast.error(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
   };
+
+  const currentEmail = watch("email");
 
   if (success) {
     return (
@@ -83,50 +84,46 @@ export default function EmailLogin({ onSignupClick }: EmailLoginProps) {
   }
 
   return (
-    <form onSubmit={handleLogin} className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
       <div>
         <h2 className="text-2xl font-black text-white mb-1">Welcome back</h2>
         <p className="text-slate-400 text-sm">Sign in to your Namma Market account</p>
       </div>
 
-      <FloatingInput
-        id="login-email"
-        icon={Mail}
-        label="Email Address"
-        type="email"
-        value={email}
-        onChange={setEmail}
-        placeholder="you@example.com"
-        required
-      />
+      <div>
+        <FloatingInput
+          id="login-email"
+          icon={Mail}
+          label="Email Address"
+          type="email"
+          {...register("email")}
+          placeholder="you@example.com"
+        />
+        {errors.email && <p className="text-red-400 text-[10px] uppercase font-bold tracking-widest mt-1 ml-2">{errors.email.message}</p>}
+      </div>
 
-      <FloatingInput
-        id="login-password"
-        icon={Lock}
-        label="Password"
-        value={pw}
-        onChange={setPw}
-        placeholder="Your password"
-        required
-        showToggle
-        toggled={showPw}
-        onToggle={() => setShowPw((p) => !p)}
-      />
-
-      {error && (
-        <div className="text-red-400 text-xs font-bold bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 flex items-start gap-2">
-          <span className="shrink-0">⚠</span>
-          <span>{error}</span>
-        </div>
-      )}
+      <div>
+        <FloatingInput
+          id="login-password"
+          icon={Lock}
+          label="Password"
+          type={showPw ? "text" : "password"}
+          {...register("password")}
+          placeholder="Your password"
+          showToggle
+          toggled={showPw}
+          onToggle={() => setShowPw((p) => !p)}
+        />
+        {errors.password && <p className="text-red-400 text-[10px] uppercase font-bold tracking-widest mt-1 ml-2">{errors.password.message}</p>}
+      </div>
 
       <div className="flex justify-between items-center">
         <button
           type="button"
           onClick={async () => {
-             if (!email) { toast.error("Enter email to receive login link"); return; }
+             if (!currentEmail || errors.email) { toast.error("Enter a valid email to receive login link"); return; }
              setLoading(true);
-             const ok = await signInWithOtp(email);
+             const ok = await signInWithOtp(currentEmail);
              setLoading(false);
              if (ok) toast.success("Magic Link sent! Check your inbox.");
              else toast.error("Failed to send Magic Link.");
@@ -138,11 +135,11 @@ export default function EmailLogin({ onSignupClick }: EmailLoginProps) {
         <button
           type="button"
           onClick={async () => {
-            if (!email) {
-              toast.error("Please enter your email first");
+            if (!currentEmail || errors.email) {
+              toast.error("Please enter a valid email first");
               return;
             }
-            const ok = await resetPassword(email);
+            const ok = await resetPassword(currentEmail);
             if (ok) toast.success("Password reset link sent to your email!");
             else toast.error("Failed to send reset link. Please try again.");
           }}

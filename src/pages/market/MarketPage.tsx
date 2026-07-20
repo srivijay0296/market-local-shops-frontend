@@ -1,70 +1,22 @@
-import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { backendApi } from '@/lib/api/client';
+import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { MapPin, ArrowLeft, Store, ExternalLink } from "lucide-react";
-import { marketsApi } from "@/lib/api/markets";
-import { shopsApi } from "@/lib/api/shops";
 
 // 🔥 SWIPER
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
+import { useMarketPage } from "@/hooks/useMarketPage";
 
 export default function MarketPage() {
-  const { slug } = useParams();
-  const [markets, setMarkets] = useState<any[]>([]);
-  const [selectedMarket, setSelectedMarket] = useState<any>(null);
-  const [marketShops, setMarketShops] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (slug) {
-      fetchMarketDetails(slug);
-    } else {
-      fetchMarkets();
-    }
-  }, [slug]);
-
-  async function fetchMarkets() {
-    setLoading(true);
-    try {
-      const data = await marketsApi.getMarkets();
-      setMarkets(data || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function fetchMarketDetails(marketSlug: string) {
-    setLoading(true);
-    setError(null);
-    try {
-      // 1. Get market by slug
-      const market = await marketsApi.getMarketBySlug(marketSlug);
-      
-      if (!market) {
-        setError('Market not found');
-        setSelectedMarket(null);
-        setMarketShops([]);
-        return;
-      }
-
-      setSelectedMarket(market);
-
-      // 2. Fetch shops for this market
-      const shops = await shopsApi.getShops({ marketId: market.id, status: 'approved' });
-      setMarketShops(shops || []);
-    } catch (err: any) {
-      console.error("Market Details Error:", err);
-      setError((err && err.message) ? err.message : 'Unable to load market details');
-    } finally {
-      setLoading(false);
-    }
-  }
+  const {
+    slug,
+    markets,
+    selectedMarket,
+    marketShops,
+    loading,
+    error
+  } = useMarketPage();
 
   // --- MARKET DETAIL VIEW ---
   if (slug) {
